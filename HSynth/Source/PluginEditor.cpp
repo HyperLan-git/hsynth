@@ -15,14 +15,18 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
     this->formula.onReturnKey = this->formula.onFocusLost = [=] {
         std::string err;
         delete formulaTree;
+        std::setlocale(LC_NUMERIC, "C");
         this->formulaTree = parse(this->formula.getText().toStdString(), err);
         this->error.setText(err, juce::NotificationType::sendNotificationAsync);
 
         if (err.empty() && formulaTree) {
             float a = 0;
             for (int i = 0; i < 2048; i++) {
-                this->data[i] = computeSample((float)i / 2048.f,
-                                              *(this->formulaTree), &a, 1);
+                this->data[i] =
+                    std::clamp(computeSample((float)i / 2048.f,
+                                             *(this->formulaTree), &a, 1),
+                               -1.f, 1.f);
+                if (!std::isfinite(this->data[i])) this->data[i] = 0;
             }
             this->repaint({0, 0, 700, 700});
         }

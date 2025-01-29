@@ -9,6 +9,11 @@ struct HyperToken* parseSymbol(const char*& c, std::string& err) {
         res = new HyperToken();
         res->type = HyperToken::NUMBER;
         res->number = std::stof(std::string(c), &len);
+        if (std::isnan(res->number)) {
+            delete res;
+            err = std::string("Invalid number near : ") + std::string(c);
+            return nullptr;
+        }
         c += len;
         return res;
     }
@@ -219,8 +224,29 @@ struct HyperToken* parse(std::string input, std::string& err) {
                 NEWOP(HyperToken::ADD);
                 break;
             case '-':
-                // TODO remember this might be a negative number
-                NEWOP(HyperToken::SUB);
+                if ((!leftOp || op) && c[1] <= '9' && c[1] >= '0') {
+                    std::size_t len = 0;
+                    struct HyperToken* res = new HyperToken();
+                    res->type = HyperToken::NUMBER;
+                    res->number = std::stof(std::string(c), &len);
+                    if (std::isnan(res->number)) {
+                        delete res;
+                        if (op) delete op;
+                        err = std::string("Invalid number near : ") +
+                              std::string(c);
+                        return nullptr;
+                    }
+                    if (op) {
+                        op->b = res;
+                        leftOp = op;
+                        op = nullptr;
+                    } else {
+                        leftOp = res;
+                    }
+                    c += len - 1;
+                } else {
+                    NEWOP(HyperToken::SUB);
+                }
                 break;
             case '/':
                 NEWOP(HyperToken::DIV);
