@@ -4,6 +4,20 @@
               addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
   <MAINGROUP id="jwmmb6" name="HSynth">
     <GROUP id="{11D113A9-A249-0F97-C249-F795077D1B65}" name="Source">
+      <FILE id="aFH3uR" name="OpenGLException.hpp" compile="0" resource="0"
+            file="Source/OpenGLException.hpp"/>
+      <FILE id="cZMfCt" name="ComputeShader.cpp" compile="1" resource="0"
+            file="Source/ComputeShader.cpp"/>
+      <FILE id="QsNdcl" name="ComputeShader.hpp" compile="0" resource="0"
+            file="Source/ComputeShader.hpp"/>
+      <FILE id="CCu8Db" name="GLBuffer.cpp" compile="1" resource="0" file="Source/GLBuffer.cpp"/>
+      <FILE id="VcOiFt" name="GLBuffer.hpp" compile="0" resource="0" file="Source/GLBuffer.hpp"/>
+      <FILE id="PZ4Fur" name="Looknfeel.cpp" compile="1" resource="0" file="Source/Looknfeel.cpp"/>
+      <FILE id="WvcpFr" name="Looknfeel.hpp" compile="0" resource="0" file="Source/Looknfeel.hpp"/>
+      <FILE id="p8Ose8" name="KnobComponent.hpp" compile="0" resource="0"
+            file="Source/KnobComponent.hpp"/>
+      <FILE id="r7Fjc0" name="KnobComponent.cpp" compile="1" resource="0"
+            file="Source/KnobComponent.cpp"/>
       <FILE id="UfqeJp" name="Parsing.cpp" compile="1" resource="0" file="Source/Parsing.cpp"/>
       <FILE id="BFP13p" name="Parsing.hpp" compile="0" resource="0" file="Source/Parsing.hpp"/>
       <FILE id="kSCMnv" name="HyperWaveTable.cpp" compile="1" resource="0"
@@ -37,6 +51,7 @@
     <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_opengl" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
   </MODULES>
   <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_VST3_CAN_REPLACE_VST2="0"/>
   <EXPORTFORMATS>
@@ -59,6 +74,7 @@
         <MODULEPATH id="juce_graphics" path="../../JUCE/modules"/>
         <MODULEPATH id="juce_gui_basics" path="../../JUCE/modules"/>
         <MODULEPATH id="juce_gui_extra" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_opengl" path="../../JUCE/modules"/>
       </MODULEPATHS>
     </LINUX_MAKE>
     <VS2022 targetFolder="Builds/VisualStudio2022">
@@ -79,6 +95,7 @@
         <MODULEPATH id="juce_graphics" path="../../JUCE/modules"/>
         <MODULEPATH id="juce_gui_basics" path="../../JUCE/modules"/>
         <MODULEPATH id="juce_gui_extra" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_opengl" path="../../JUCE/modules"/>
       </MODULEPATHS>
     </VS2022>
   </EXPORTFORMATS>

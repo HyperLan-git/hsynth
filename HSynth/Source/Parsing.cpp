@@ -226,16 +226,17 @@ struct HyperToken* parse(std::string input, std::string& err) {
             case '-':
                 if ((!leftOp || op) && c[1] <= '9' && c[1] >= '0') {
                     std::size_t len = 0;
-                    struct HyperToken* res = new HyperToken();
-                    res->type = HyperToken::NUMBER;
-                    res->number = std::stof(std::string(c), &len);
-                    if (std::isnan(res->number)) {
-                        delete res;
+                    float num = std::stof(std::string(c), &len);
+                    if (std::isnan(num)) {
                         if (op) delete op;
                         err = std::string("Invalid number near : ") +
                               std::string(c);
                         return nullptr;
                     }
+
+                    struct HyperToken* res = new HyperToken();
+                    res->type = HyperToken::NUMBER;
+                    res->number = num;
                     if (op) {
                         op->b = res;
                         leftOp = op;

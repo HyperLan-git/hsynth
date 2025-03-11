@@ -5,6 +5,9 @@ BUILD_FOLDER=$(PROJECT_NAME)/Builds/LinuxMakefile
 all:
 	cd $(BUILD_FOLDER) && make
 
+release:
+	cd $(BUILD_FOLDER) && make CONFIG=Release
+
 VST:
 	cd $(BUILD_FOLDER) && make VST3
 

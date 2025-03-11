@@ -1,8 +1,30 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include <optional>
+#include "JuceHeader.h"
 #include "PluginProcessor.hpp"
 #include "Parsing.hpp"
+#include "KnobComponent.hpp"
+#include "ComputeShader.hpp"
+
+class HSynthAudioProcessorEditor;
+
+class PListener : public juce::AudioProcessorParameter::Listener {
+   public:
+    PListener(juce::RangedAudioParameter* param,
+              HSynthAudioProcessorEditor* editor);
+
+    ~PListener() override;
+
+    void parameterValueChanged(int parameterIndex, float newValue) override;
+
+    void parameterGestureChanged(int parameterIndex,
+                                 bool gestureIsStarting) override;
+
+   private:
+    juce::RangedAudioParameter* param;
+    HSynthAudioProcessorEditor* editor;
+};
 
 class HSynthAudioProcessorEditor : public juce::AudioProcessorEditor {
    public:
@@ -11,12 +33,15 @@ class HSynthAudioProcessorEditor : public juce::AudioProcessorEditor {
 
     void paint(juce::Graphics&) override;
     void resized() override;
+    void redrawGraph();
 
    private:
     HSynthAudioProcessor& audioProcessor;
 
-    struct HyperToken* formulaTree = nullptr;
-    float data[2048] = {};
+    juce::Component dummy;
+
+    KnobComponent aKnob, bKnob;
+    PListener aListener, bListener;
 
     juce::TextEditor formula;
     juce::Label title, error;

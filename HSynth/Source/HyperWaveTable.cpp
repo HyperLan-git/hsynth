@@ -1,9 +1,7 @@
 #include "HyperWaveTable.hpp"
 
-std::size_t pow256(std::size_t n) { return 0x1 << (n << 1); }
-
 HyperWaveTable::HyperWaveTable(std::size_t parameters)
-    : content((float**)new float[pow256(parameters)][WAVETABLE_TIME_SAMPLES]),
+    : content((float*)new float[pow256(parameters) * WAVETABLE_TIME_SAMPLES]),
       ready(new bool[pow256(parameters)]),
       params(parameters),
       f() {
@@ -163,7 +161,7 @@ void HyperWaveTable::compute(std::size_t paramFill, float* paramValues) {
         for (std::size_t i = 0; i < samples; i++) {
             double t = i;
             t /= samples;
-            this->content[index][i] =
+            this->content[index * samples + i] =
                 computeSample(t, root, paramValues, this->params);
         }
         this->ready[index] = true;
@@ -205,8 +203,8 @@ bool HyperWaveTable::fillBlockConst(float* block, int sz, float* parameters,
             float sample = phase * WAVETABLE_TIME_SAMPLES;
             float t = std::floor(sample);
             block[i] =
-                lerpArr(this->content[idxMin], t, sample - t) * f +
-                lerpArr(this->content[idxMin + 1], t, sample - t) * (1 - f);
+                lerpArr(this->content + idxMin, t, sample - t) * f +
+                lerpArr(this->content + idxMin + 1, t, sample - t) * (1 - f);
             phase += dt;
             if (phase > 1) phase -= 1;
         }
@@ -238,12 +236,12 @@ bool HyperWaveTable::fillBlockConst(float* block, int sz, float* parameters,
             float sample = phase * WAVETABLE_TIME_SAMPLES;
             float t = std::floor(sample);
             block[i] =
-                lerpArr(this->content[idxMin], t, sample - t) * f0 +
-                lerpArr(this->content[idxMin + 1], t, sample - t) * f1 +
-                lerpArr(this->content[idxMin + WAVETABLE_PARAM_SAMPLES], t,
+                lerpArr(this->content + idxMin, t, sample - t) * f0 +
+                lerpArr(this->content + idxMin + 1, t, sample - t) * f1 +
+                lerpArr(this->content + idxMin + WAVETABLE_PARAM_SAMPLES, t,
                         sample - t) *
                     f2 +
-                lerpArr(this->content[idxMin + WAVETABLE_PARAM_SAMPLES + 1], t,
+                lerpArr(this->content + idxMin + WAVETABLE_PARAM_SAMPLES + 1, t,
                         sample - t) *
                     f3;
             phase += dt;

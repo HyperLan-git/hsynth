@@ -1,7 +1,14 @@
 #include "PluginEditor.hpp"
 
+#include <chrono>
+
 HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
-    : AudioProcessorEditor(&p), audioProcessor(p) {
+    : AudioProcessorEditor(&p),
+      audioProcessor(p),
+      aKnob(p.getAParam()),
+      aListener(p.getAParam(), this),
+      bKnob(p.getBParam()),
+      bListener(p.getBParam(), this) {
     setSize(700, 700);
     this->error.setColour(juce::Label::textColourId, juce::Colours::red);
     this->formula.setFont(juce::FontOptions(20.0f));
@@ -12,36 +19,41 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
                         juce::NotificationType::sendNotificationAsync);
     this->formula.setTextToShowWhenEmpty("Formula example : sin(p)",
                                          juce::Colours::grey);
-    this->formula.onReturnKey = this->formula.onFocusLost = [=] {
-        std::string err;
-        delete formulaTree;
-        std::setlocale(LC_NUMERIC, "C");
-        this->formulaTree = parse(this->formula.getText().toStdString(), err);
-        this->error.setText(err, juce::NotificationType::sendNotificationAsync);
 
-        if (err.empty() && formulaTree) {
-            float a = 0;
-            for (int i = 0; i < 2048; i++) {
-                this->data[i] =
-                    std::clamp(computeSample((float)i / 2048.f,
-                                             *(this->formulaTree), &a, 1),
-                               -1.f, 1.f);
-                if (!std::isfinite(this->data[i])) this->data[i] = 0;
-            }
-            this->repaint({0, 0, 700, 700});
-        }
+    this->formula.onReturnKey = this->formula.onFocusLost = [=] {
+        std::string formula(this->formula.getText().toStdString());
+        this->audioProcessor.getContext().executeOnGLThread(
+            [=](juce::OpenGLContext& ctx) {
+                juce::Logger::writeToLog("Compute buffer");
+                this->audioProcessor.computeBuffer(formula);
+                this->error.setText(
+                    this->audioProcessor.getError(),
+                    juce::NotificationType::sendNotificationAsync);
+                juce::Logger::writeToLog("Redraw graph");
+                redrawGraph();
+            },
+            false);
     };
     this->setWantsKeyboardFocus(true);
     this->formula.onEscapeKey = [=] { this->grabKeyboardFocus(); };
 
+    // Must be first one
+    this->addAndMakeVisible(this->dummy);
     this->addAndMakeVisible(this->title);
     this->addAndMakeVisible(this->formula);
     this->addAndMakeVisible(this->error);
+    this->addAndMakeVisible(this->aKnob);
+    this->addAndMakeVisible(this->bKnob);
 }
 
 HSynthAudioProcessorEditor::~HSynthAudioProcessorEditor() {
-    // TODO ensure this is not being used while it's being deleted
-    delete this->formulaTree;
+    auto& context = this->audioProcessor.getContext();
+    context.detach();
+}
+
+void HSynthAudioProcessorEditor::redrawGraph() {
+    juce::MessageManagerLock lock;
+    this->repaint({45, 95, 660, 710});
 }
 
 void HSynthAudioProcessorEditor::paint(juce::Graphics& g) {
@@ -49,19 +61,40 @@ void HSynthAudioProcessorEditor::paint(juce::Graphics& g) {
 
     g.setColour(juce::Colours::yellow);
     g.setFont(juce::FontOptions(15.0f));
-    float startX = 50, endX = 650;
-    float startY = 100, endY = 700;
-    float prevX = 50, prevY = -this->data[0] * 300 + 400;
-    for (int i = 1; i < 2048; i++) {
-        float x = 50 + i * 600 / 2048.f, y = -this->data[i] * 300 + 400;
-        g.drawLine({prevX, prevY, x, y});
-        prevX = x;
-        prevY = y;
+    constexpr float startX = 50, endX = 650;
+    constexpr float startY = 100, endY = 700;
+    constexpr int maxI = 1024;
+    const auto& frame = audioProcessor.getCurrentFrame();
+    juce::Path p;
+    p.preallocateSpace(3 * maxI);
+    p.startNewSubPath(50, -frame[0] * 300 + 400);
+    for (int i = 1; i < maxI; i++) {
+        float x = 50 + i * 600.f / maxI,
+              y = -frame[i * 2048 / maxI] * 300 + 400;
+        p.lineTo(x, y);
     }
+    g.strokePath(p, juce::PathStrokeType(2));
 }
 
 void HSynthAudioProcessorEditor::resized() {
     this->title.setBounds({100, 0, 400, 25});
     this->formula.setBounds({100, 25, 400, 50});
     this->error.setBounds({100, 75, 400, 25});
+    this->aKnob.setBounds({500, 0, 100, 100});
+    this->bKnob.setBounds({600, 0, 100, 100});
 }
+
+PListener::PListener(juce::RangedAudioParameter* param,
+                     HSynthAudioProcessorEditor* editor)
+    : param(param), editor(editor) {
+    this->param->addListener(this);
+}
+
+PListener::~PListener() { this->param->removeListener(this); }
+
+void PListener::parameterValueChanged(int parameterIndex, float newValue) {
+    this->editor->redrawGraph();
+}
+
+void PListener::parameterGestureChanged(int parameterIndex,
+                                        bool gestureIsStarting) {}

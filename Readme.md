@@ -17,3 +17,6 @@ make
 
 To compile in Release mode (with optimisations and no memory sanitizer), use `make CONFIG=Release`.
 You can clean binaries with `make clean`.
+
+## Presets
+`arctan((1+b*20)*sin(p+a*30*sin(p)))*2/P`

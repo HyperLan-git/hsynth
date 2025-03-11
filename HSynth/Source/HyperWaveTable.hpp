@@ -9,6 +9,8 @@
 #include <cmath>
 #include <iostream>
 
+// TODO add assertions for ptrs
+
 #ifndef M_PI
 #define M_PI 3.14159265f
 #endif
@@ -40,10 +42,11 @@ enum Function {
     FLOOR,
     CEIL
 };
+
 constexpr const char* functions[] = {
-    "sin", "cos",  "tan",  "asin",  "acos",  "atan",  "ln",
-    "exp", "sqrt", "cosh", "sinh",  "tanh",  "abs",   "sign",
-    "erf", "max",  "min",  "gamma", "round", "floor", "ceil"};
+    "sin", "cos",  "tan",  "asin",  "acos",  "arctan", "log",
+    "exp", "sqrt", "cosh", "sinh",  "tanh",  "abs",    "sign",
+    "erf", "max",  "min",  "gamma", "round", "floor",  "ceil"};
 
 struct HyperToken {
     enum Type {
@@ -89,7 +92,7 @@ struct HyperToken {
 
 std::ostream& operator<<(std::ostream& stream, const struct HyperToken& tok);
 
-std::size_t pow256(std::size_t n);
+constexpr static std::size_t pow256(std::size_t n) { return 0x1 << (n << 1); }
 
 float computeSample(double t, const struct HyperToken& tok, float* params,
                     std::size_t nParams);
@@ -97,7 +100,7 @@ float computeSample(double t, const struct HyperToken& tok, float* params,
 class HyperWaveTable {
    public:
     // parameters should be above 0
-    HyperWaveTable(std::size_t parameters);
+    explicit HyperWaveTable(std::size_t parameters);
 
     virtual ~HyperWaveTable();
 
@@ -140,7 +143,7 @@ class HyperWaveTable {
    private:
     const struct HyperToken* f = nullptr;
     bool* ready;
-    float** content;
+    float* content;
     float** fftContent;
     bool spectral = false;
     std::size_t params;

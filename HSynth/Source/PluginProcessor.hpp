@@ -1,8 +1,11 @@
 #pragma once
 
-#include <JuceHeader.h>
 #include <array>
+#include <memory>
+
+#include "JuceHeader.h"
 #include "Parsing.hpp"
+#include "ComputeShader.hpp"
 
 #define MAX_VOICES 32
 
@@ -11,6 +14,8 @@ struct Voice {
     float timeStart = 0, timeRelease = 0;
     float phase = 0;
 };
+
+using WTFrame = float[2048];
 
 class HSynthAudioProcessor : public juce::AudioProcessor {
    public:
@@ -45,13 +50,36 @@ class HSynthAudioProcessor : public juce::AudioProcessor {
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
 
+    void computeBuffer(const std::string& formula);
+
+    inline const std::string& getError() const { return error; }
+
+    inline juce::AudioParameterFloat* getAParam() { return a; }
+    inline juce::AudioParameterFloat* getBParam() { return b; }
+
+    inline const WTFrame& getCurrentFrame() const {
+        return data[(int)(b->get() * 255)][(int)(a->get() * 255)];
+    }
+
+    inline juce::OpenGLContext& getContext() { return context; }
+
    private:
+    std::string formula;
+    std::unique_ptr<ComputeShader> shader;
+
+    std::string error;
+
+    struct HyperToken* formulaTree = nullptr;
+
+    float data[256][256][2048] = {0};
+
+    juce::OpenGLContext context;
+
+    juce::AudioParameterFloat *a, *b;
     juce::AudioParameterFloat *hz_shift, *st_shift, *phase;
     juce::AudioParameterFloat *attack, *decay, *sustain, *release;
 
     // TODO lfo system/other envelopes maybe?
-
-    juce::AudioParameterChoice* wave;
 
     std::array<struct Voice, MAX_VOICES> voices;
 
