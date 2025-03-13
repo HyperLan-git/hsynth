@@ -58,6 +58,10 @@ class HSynthAudioProcessor : public juce::AudioProcessor {
 
     inline juce::AudioParameterFloat* getAParam() { return a; }
     inline juce::AudioParameterFloat* getBParam() { return b; }
+    inline juce::AudioParameterFloat* getAttackParam() { return attack; }
+    inline juce::AudioParameterFloat* getDecayParam() { return decay; }
+    inline juce::AudioParameterFloat* getSustainParam() { return sustain; }
+    inline juce::AudioParameterFloat* getReleaseParam() { return release; }
 
     inline const WTFrame& getCurrentFrame() const {
         return data[(int)(b->get() * 255)][(int)(a->get() * 255)];

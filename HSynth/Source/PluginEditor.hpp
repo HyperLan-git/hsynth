@@ -40,7 +40,7 @@ class HSynthAudioProcessorEditor : public juce::AudioProcessorEditor {
 
     juce::Component dummy;
 
-    KnobComponent aKnob, bKnob;
+    KnobComponent aKnob, bKnob, attackKnob, decayKnob, sustainKnob, releaseKnob;
     PListener aListener, bListener;
 
     juce::TextEditor formula;

@@ -23,7 +23,7 @@ HSynthAudioProcessor::HSynthAudioProcessor()
       decay(new juce::AudioParameterFloat(juce::ParameterID("decay", 1),
                                           "decay", 0, 5, .5f)),
       sustain(new juce::AudioParameterFloat(juce::ParameterID("sustain", 1),
-                                            "sustain", 0, 1, 0)),
+                                            "sustain", 0, 1, .75f)),
       release(new juce::AudioParameterFloat(juce::ParameterID("release", 1),
                                             "release", 0, 5, .1f)) {
     addParameter(a);
