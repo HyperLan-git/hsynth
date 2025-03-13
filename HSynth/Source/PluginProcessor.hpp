@@ -10,8 +10,10 @@
 #define MAX_VOICES 32
 
 struct Voice {
-    int note = 0;
-    float timeStart = 0, timeRelease = 0;
+    uint8_t note = 0, velocity = 0;
+    int64_t timeStart = 0, timeRelease = 0;
+    float releaseAmp = 0;
+    // Between 0 and 1
     float phase = 0;
 };
 

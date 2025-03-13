@@ -17,10 +17,21 @@ HSynthAudioProcessor::HSynthAudioProcessor()
       hz_shift(new juce::AudioParameterFloat({"hz_shift", 1}, "Frequency shift",
                                              -10000, 10000, 0)),
       a(new juce::AudioParameterFloat(juce::ParameterID("a", 1), "a", 0, 1, 0)),
-      b(new juce::AudioParameterFloat(juce::ParameterID("b", 1), "b", 0, 1,
-                                      0)) {
+      b(new juce::AudioParameterFloat(juce::ParameterID("b", 1), "b", 0, 1, 0)),
+      attack(new juce::AudioParameterFloat(juce::ParameterID("attack", 1),
+                                           "attack", 0, 5, .01f)),
+      decay(new juce::AudioParameterFloat(juce::ParameterID("decay", 1),
+                                          "decay", 0, 5, .5f)),
+      sustain(new juce::AudioParameterFloat(juce::ParameterID("sustain", 1),
+                                            "sustain", 0, 1, 0)),
+      release(new juce::AudioParameterFloat(juce::ParameterID("release", 1),
+                                            "release", 0, 5, .1f)) {
     addParameter(a);
     addParameter(b);
+    addParameter(attack);
+    addParameter(decay);
+    addParameter(sustain);
+    addParameter(release);
     addParameter(hz_shift);
 
     this->context.setOpenGLVersionRequired(
@@ -28,7 +39,7 @@ HSynthAudioProcessor::HSynthAudioProcessor()
 }
 
 HSynthAudioProcessor::~HSynthAudioProcessor() {
-    this->context.detach();
+    this->context.deactivateCurrentContext();
     delete formulaTree;
 }
 
@@ -102,14 +113,137 @@ bool HSynthAudioProcessor::isBusesLayoutSupported(
 }
 #endif
 
+// 2^(1/12)
+constexpr float SEMITONE_PITCH = 1.05946309436f;
+float getFreq(int midiPitch) {
+    float result = 1;
+    while (midiPitch < 69 - 6) {
+        midiPitch += 12;
+        result /= 2.;
+    }
+    while (midiPitch > 69 + 6) {
+        midiPitch -= 12;
+        result *= 2;
+    }
+    return result * std::pow(SEMITONE_PITCH, midiPitch - 69) * 440;
+}
+
+float interpolExp(int samplesSinceStart, int sampleDuration, float start,
+                  float end, bool negCurve = true) {
+    if (samplesSinceStart > sampleDuration) return end;
+    if (!negCurve)
+        return start +
+               (end - start) *
+                   (std::exp(-(float)samplesSinceStart / sampleDuration) - 1) /
+                   (std::exp(-1) - 1);
+    return start +
+           (end - start) *
+               (std::exp((float)samplesSinceStart / sampleDuration) - 1) /
+               (std::exp(1) - 1);
+}
+
 void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                                         juce::MidiBuffer& midiMessages) {
     juce::ScopedNoDenormals noDenormals;
-    int inputs = getTotalNumInputChannels();
-    int outputs = getTotalNumOutputChannels();
+    const double t =
+        this->getPlayHead()->getPosition()->getTimeInSeconds().orFallback(0);
+    const int64_t sample =
+        this->getPlayHead()->getPosition()->getTimeInSamples().orFallback(0);
+    const int inputs = getTotalNumInputChannels();
+    const int outputs = getTotalNumOutputChannels();
 
-    for (int channel = 0; channel < outputs; ++channel) {
-        auto* channelData = buffer.getWritePointer(channel);
+    const double samples = buffer.getNumSamples();
+
+    for (const auto& e : midiMessages) {
+        if (e.getMessage().isNoteOff()) {
+            for (Voice& v : voices) {
+                if (!v.velocity || v.timeRelease != INT64_MIN ||
+                    v.note != e.getMessage().getNoteNumber())
+                    continue;
+                v.timeRelease = e.samplePosition;
+                break;
+            }
+        } else if (e.getMessage().isNoteOn()) {
+            bool alreadyOn = false;
+            for (Voice& v : voices) {
+                if (!v.velocity || v.timeRelease != INT64_MIN ||
+                    v.note != e.getMessage().getNoteNumber())
+                    continue;
+                alreadyOn = true;
+                break;
+            }
+            // Next midi message
+            if (alreadyOn) continue;
+            for (Voice& v : voices) {
+                if (v.velocity) continue;
+                v.note = e.getMessage().getNoteNumber();
+                v.velocity = e.getMessage().getVelocity();
+                v.timeStart = e.samplePosition;
+                v.phase = 0;
+                v.timeRelease = INT64_MIN;
+                break;
+            }
+        } else if (e.getMessage().isAllNotesOff()) {
+            for (Voice& v : voices) {
+                if (!v.velocity) continue;
+                v.timeRelease = e.samplePosition;
+            }
+        }
+    }
+
+    float* channelData = buffer.getWritePointer(0);
+    const int sampleAttack = (*attack) * getSampleRate();
+    const int sampleDecay = (*decay) * getSampleRate();
+    const int sampleRel = (*release) * getSampleRate();
+    const float sus = *sustain;
+
+    const float hzShift = *hz_shift;
+
+    auto& frame = getCurrentFrame();
+    for (Voice& v : voices) {
+        if (!v.velocity) continue;
+        if (v.timeRelease != INT64_MIN && v.timeRelease < -sampleRel) {
+            v.velocity = 0;
+            v.timeRelease = INT64_MIN;
+            continue;
+        }
+        const float freq = getFreq(v.note) + hzShift;
+        const float dt = freq / this->getSampleRate();
+        float relValue = 1;
+        for (int i = v.timeStart > 0 ? v.timeStart : 0; i < samples; i++) {
+            float idx = v.phase * 2047;
+            int fl = std::floor(idx);
+            float dif = idx - fl;
+            float amplitude = sus;
+            if (v.timeRelease != INT64_MIN && i > v.timeRelease)
+                amplitude = interpolExp(i - v.timeRelease, sampleRel,
+                                        v.releaseAmp, 0, false);
+            else if (v.timeStart > -sampleAttack)
+                amplitude =
+                    interpolExp(i - v.timeStart, sampleAttack, 0, 1, true);
+            else if (v.timeStart > -sampleAttack - sampleDecay)
+                amplitude = interpolExp(i - v.timeStart - sampleAttack,
+                                        sampleDecay, 1, sus, true);
+
+            if (i == v.timeRelease) v.releaseAmp = amplitude;
+
+            // TODO implement Decay
+            channelData[i] +=
+                amplitude * ((1 - dif) * frame[fl] + dif * frame[fl + 1]);
+            v.phase += dt;
+            if (v.phase > 1) v.phase -= 1;
+        }
+        v.timeStart -= samples;
+        if (v.timeRelease != INT64_MIN) v.timeRelease -= samples;
+    }
+
+    constexpr float GLOBAL_VOLUME = .1f;
+
+    buffer.applyGain(GLOBAL_VOLUME);
+
+    for (int channel = 1; channel < outputs; ++channel) {
+        auto* data = buffer.getWritePointer(channel);
+        std::memcpy(data, channelData, sizeof(float) * samples);
     }
 }
 
@@ -145,6 +279,7 @@ constexpr char SHADERCODE[] =
 void HSynthAudioProcessor::computeBuffer(const std::string& formula) {
     delete formulaTree;
     std::setlocale(LC_NUMERIC, "C");
+    error.clear();
     this->formulaTree =
         parse(formula, error);  // optimize(parse(formula, err));
 
@@ -152,7 +287,7 @@ void HSynthAudioProcessor::computeBuffer(const std::string& formula) {
         return;
     }
 
-    while (!this->context.makeActive());
+    while (!this->context.makeActive() && this->context.isAttached());
 
     if (formula != this->formula) {
         this->formula = formula;
@@ -210,6 +345,7 @@ juce::AudioProcessorEditor* HSynthAudioProcessor::createEditor() {
     auto* editor = new HSynthAudioProcessorEditor(*this);
     this->context.attachTo(*(editor));
     this->context.setContinuousRepainting(true);
+    this->context.setSwapInterval(60);
     return editor;
 }
 

@@ -47,13 +47,13 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
 }
 
 HSynthAudioProcessorEditor::~HSynthAudioProcessorEditor() {
-    auto& context = this->audioProcessor.getContext();
-    context.detach();
+    auto context = juce::OpenGLContext::getContextAttachedTo(*this);
+    if (context) context->detach();
 }
 
 void HSynthAudioProcessorEditor::redrawGraph() {
-    juce::MessageManagerLock lock;
-    this->repaint({45, 95, 660, 710});
+    juce::MessageManager::callAsync(
+        [=]() { this->repaint({45, 95, 660, 710}); });
 }
 
 void HSynthAudioProcessorEditor::paint(juce::Graphics& g) {
