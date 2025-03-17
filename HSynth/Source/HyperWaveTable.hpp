@@ -43,7 +43,7 @@ enum Function {
     CEIL
 };
 
-constexpr const char* functions[] = {
+constexpr char* functions[] = {
     "sin", "cos",  "tan",  "asin",  "acos",  "arctan", "log",
     "exp", "sqrt", "cosh", "sinh",  "tanh",  "abs",    "sign",
     "erf", "max",  "min",  "gamma", "round", "floor",  "ceil"};
@@ -92,7 +92,7 @@ struct HyperToken {
 
 std::ostream& operator<<(std::ostream& stream, const struct HyperToken& tok);
 
-constexpr static std::size_t pow256(std::size_t n) { return 0x1 << (n << 1); }
+constexpr static std::size_t pow256(std::size_t n) { return (std::size_t)0x1 << (n << 1); }
 
 float computeSample(double t, const struct HyperToken& tok, float* params,
                     std::size_t nParams);

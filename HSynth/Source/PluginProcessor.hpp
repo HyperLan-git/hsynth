@@ -54,7 +54,7 @@ class HSynthAudioProcessor : public juce::AudioProcessor {
 
     void computeBuffer(const std::string& formula);
 
-    inline const std::string& getError() const { return error; }
+    inline const std::string& getError() const { return errorStr; }
 
     inline juce::AudioParameterFloat* getAParam() { return a; }
     inline juce::AudioParameterFloat* getBParam() { return b; }
@@ -73,11 +73,11 @@ class HSynthAudioProcessor : public juce::AudioProcessor {
     std::string formula;
     std::unique_ptr<ComputeShader> shader;
 
-    std::string error;
+    std::string errorStr;
 
     struct HyperToken* formulaTree = nullptr;
 
-    float data[256][256][2048] = {0};
+    float data[256][256][2048];
 
     juce::OpenGLContext context;
 

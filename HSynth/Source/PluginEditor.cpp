@@ -28,6 +28,7 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
         std::string formula(this->formula.getText().toStdString());
         this->audioProcessor.getContext().executeOnGLThread(
             [=](juce::OpenGLContext& ctx) {
+                (void)ctx;
                 juce::Logger::writeToLog("Compute buffer");
                 this->audioProcessor.computeBuffer(formula);
                 this->error.setText(
@@ -105,8 +106,13 @@ PListener::PListener(juce::RangedAudioParameter* param,
 PListener::~PListener() { this->param->removeListener(this); }
 
 void PListener::parameterValueChanged(int parameterIndex, float newValue) {
+    (void)parameterIndex;
+    (void)newValue;
     this->editor->redrawGraph();
 }
 
 void PListener::parameterGestureChanged(int parameterIndex,
-                                        bool gestureIsStarting) {}
+    bool gestureIsStarting) {
+    (void)parameterIndex;
+    (void)gestureIsStarting;
+}

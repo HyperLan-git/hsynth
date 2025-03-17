@@ -10,7 +10,7 @@ struct Uniform {
         int i;
         float f;
         int64_t i64;
-        uint u;
+        uint32_t u;
         double d;
         uint64_t u64;
     } value;
@@ -31,7 +31,7 @@ class ComputeShader {
     ~ComputeShader() { juce::gl::glDeleteProgram(program); }
 
    private:
-    uint16_t program = 0;
+    uint32_t program = 0;
     std::vector<GLBuffer> buffers;
     bool linked = false;
 

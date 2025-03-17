@@ -47,7 +47,7 @@ float computeFunction(double t, const struct HyperToken& tok, float* params,
         case ABS:
             return arg1 < 0 ? -arg1 : arg1;
         case SIGN:
-            return arg1 < 0 ? -1 : (arg1 > 0 ? 1 : 0);
+            return arg1 < 0 ? -1.f : (arg1 > 0 ? 1.f : 0.f);
         case ERF:
             return std::erf(arg1);
         case MAX:
@@ -69,7 +69,8 @@ float computeFunction(double t, const struct HyperToken& tok, float* params,
     }
 }
 
-constexpr float E = std::exp(1);
+// exp(1)
+constexpr float E = 0.577215664901532860606512f;
 
 float computeVariable(double t, const struct HyperToken& tok, float* params,
                       std::size_t nParams) {
@@ -278,12 +279,18 @@ std::ostream& operator<<(std::ostream& stream, const struct HyperToken& tok) {
         case HyperToken::NONE:
             stream << "none";
             break;
-        case HyperToken::FUNCTION:
-            if (tok.func > sizeof(functions) / sizeof(char*))
+        case HyperToken::FUNCTION: {
+            const int i = tok.func;
+            if (i > CEIL)
                 stream << "function\nFunction: UNKNOWN";
             else
-                stream << "function\nFunction: " << functions[tok.func];
+            {
+                // This stupidity is required to silence a warning
+                const char* func = *(&functions[i]);
+                stream << "function\nFunction: " << func;
+            }
             break;
+        }
         case HyperToken::VARIABLE:
             stream << "var\nName: " << tok.var;
             break;

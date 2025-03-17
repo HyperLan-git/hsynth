@@ -15,11 +15,11 @@ ComputeShader::ComputeShader(const char* code,
 void ComputeShader::compile(const char* code) {
     juce::Logger::writeToLog("Compiling compute shader");
     using namespace juce::gl;
-    uint16_t shader = juce::gl::glCreateShader(GL_COMPUTE_SHADER);
+    uint32_t shader = juce::gl::glCreateShader(GL_COMPUTE_SHADER);
     glShaderSource(shader, 1, &code, nullptr);
     glCompileShader(shader);
 
-    GLint res;
+    GLint res = 0;
     constexpr int logLength = 1024;
     char shaderErrorMessage[logLength] = {0};
 
@@ -81,7 +81,7 @@ void ComputeShader::run(uint16_t x, uint16_t y, uint16_t z) {
     /*if (nUniforms > 0)
         for (std::size_t i = 0; i < nUniforms; i++) applyUniform(uniforms[i]);*/
 
-    for (int i = 0; i < buffers.size(); i++) {
+    for (uint16_t i = 0; i < buffers.size(); i++) {
         buffers[i].bindBuffer(i + 1);
     }
     glDispatchCompute(x, y, z);

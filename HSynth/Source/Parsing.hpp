@@ -2,6 +2,7 @@
 
 #include "HyperWaveTable.hpp"
 #include <string>
+#include <cstring>
 #include <cstdlib>
 
 /**

@@ -35,5 +35,11 @@ class OpenGLException : public std::runtime_error {
 static void MessageCallback(GLenum source, GLenum type, GLuint id,
                             GLenum severity, GLsizei length,
                             const GLchar* message, const void* userParam) {
+    (void)userParam;
+    (void)length;
+    (void)severity;
+    (void)id;
+    (void)source;
+    (void)type;
     std::cerr << "GL DEBUG: " << message << std::endl;
 }
