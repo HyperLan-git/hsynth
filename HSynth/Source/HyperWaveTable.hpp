@@ -45,7 +45,7 @@ enum Function {
     CEIL
 };
 
-constexpr std::string functions[] = {
+const std::string functions[] = {
     "sin", "cos",  "tan",  "asin",  "acos",  "arctan", "log",
     "exp", "sqrt", "cosh", "sinh",  "tanh",  "abs",    "sign",
     "erf", "max",  "min",  "gamma", "round", "floor",  "ceil"};

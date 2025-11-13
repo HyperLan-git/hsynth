@@ -23,8 +23,8 @@ struct HyperToken* parseSymbol(const char*& c, std::string& err) {
         return nullptr;
     }
     for (int i = 0; i < sizeof(functions) / sizeof(char*); i++) {
-        const char* c2 = functions[i];
-        std::size_t l = strlen(c2);
+        const char* c2 = functions[i].c_str();
+        std::size_t l = functions[i].length();
         if (std::strncmp(c, c2, l) == 0 && c[l] == '(') {
             bool binary = i == Function::MAX || i == Function::MIN;
             std::size_t grp = l + 1;

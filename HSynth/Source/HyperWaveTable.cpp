@@ -283,10 +283,8 @@ std::ostream& operator<<(std::ostream& stream, const struct HyperToken& tok) {
             const int i = tok.func;
             if (i > CEIL)
                 stream << "function\nFunction: UNKNOWN";
-            else
-            {
-                // This stupidity is required to silence a warning
-                const char* func = *(&functions[i]);
+            else {
+                const char* func = functions[i].c_str();
                 stream << "function\nFunction: " << func;
             }
             break;

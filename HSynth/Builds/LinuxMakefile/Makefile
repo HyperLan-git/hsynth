@@ -144,7 +144,7 @@ OBJECTS_SHARED_CODE := \
   $(JUCE_OBJDIR)/juce_LinuxSubprocessHelperBinaryData_e1db7dc.o \
 
 OBJECTS_VST3_MANIFEST_HELPER := \
-  $(JUCE_OBJDIR)/juce_VST3ManifestHelper_d62bf7a7.o \
+  $(JUCE_OBJDIR)/juce_VST3ManifestHelper_b11bfe7.o \
 
 .PHONY: clean all strip VST3 Standalone VST3_MANIFEST_HELPER
 
@@ -336,7 +336,7 @@ $(JUCE_OBJDIR)/juce_LinuxSubprocessHelperBinaryData_e1db7dc.o: pre_build/juce_Li
 	@echo "Compiling juce_LinuxSubprocessHelperBinaryData.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_SHARED_CODE) $(JUCE_CFLAGS_SHARED_CODE) -o "$@" -c "$<"
 
-$(JUCE_OBJDIR)/juce_VST3ManifestHelper_d62bf7a7.o: ~/JUCE/modules/juce_audio_plugin_client/VST3/juce_VST3ManifestHelper.cpp
+$(JUCE_OBJDIR)/juce_VST3ManifestHelper_b11bfe7.o: /home/hyper/prog/JUCE/modules/juce_audio_plugin_client/VST3/juce_VST3ManifestHelper.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling juce_VST3ManifestHelper.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_VST3_MANIFEST_HELPER) $(JUCE_CFLAGS_VST3_MANIFEST_HELPER) -o "$@" -c "$<"

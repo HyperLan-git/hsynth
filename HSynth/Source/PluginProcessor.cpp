@@ -357,19 +357,19 @@ void HSynthAudioProcessor::computeBuffer(const std::string& formulaStr) {
                 } catch (const std::runtime_error& e) {
                     delete[] code;
                     std::cerr << e.what() << std::endl;
-                    error = e.what();
+                    errorStr = e.what();
                     return;
                 }
             else {
                 delete[] code;
                 std::cerr << e.what() << std::endl;
-                error = e.what();
+                errorStr = e.what();
                 return;
             }
         } catch (const std::runtime_error& e) {
             delete[] code;
             std::cerr << e.what() << std::endl;
-            error = e.what();
+            errorStr = e.what();
             return;
         }
         delete[] code;
