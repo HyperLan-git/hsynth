@@ -3,9 +3,9 @@
 #include <array>
 #include <memory>
 
+#include "ComputeShader.hpp"
 #include "JuceHeader.h"
 #include "Parsing.hpp"
-#include "ComputeShader.hpp"
 
 #define MAX_VOICES 32
 
@@ -13,6 +13,7 @@ struct Voice {
     uint8_t note = 0, velocity = 0;
     int64_t timeStart = 0, timeRelease = 0;
     float releaseAmp = 0;
+    float detune = 0, freq = 0, amp = 0, pan = 0;
     // Between 0 and 1
     float phase = 0;
 };
@@ -63,6 +64,9 @@ class HSynthAudioProcessor : public juce::AudioProcessor {
     inline juce::AudioParameterFloat* getSustainParam() { return sustain; }
     inline juce::AudioParameterFloat* getReleaseParam() { return release; }
 
+    inline juce::AudioParameterInt* getVoicesParam() { return voicesPerNote; }
+    inline juce::AudioParameterFloat* getDetuneParam() { return detune; }
+
     inline const WTFrame& getCurrentFrame() const {
         return data[(int)(b->get() * 255)][(int)(a->get() * 255)];
     }
@@ -85,9 +89,13 @@ class HSynthAudioProcessor : public juce::AudioProcessor {
     juce::AudioParameterFloat *hz_shift, *st_shift, *phase;
     juce::AudioParameterFloat *attack, *decay, *sustain, *release;
 
+    juce::AudioParameterInt* voicesPerNote;
+    juce::AudioParameterFloat* detune;
+
     // TODO lfo system/other envelopes maybe?
 
     std::array<struct Voice, MAX_VOICES> voices;
+    int freeVoices = MAX_VOICES;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(HSynthAudioProcessor)
 };

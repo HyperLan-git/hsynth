@@ -1,11 +1,12 @@
 #pragma once
 
 #include <optional>
-#include "JuceHeader.h"
-#include "PluginProcessor.hpp"
-#include "Parsing.hpp"
-#include "KnobComponent.hpp"
+
 #include "ComputeShader.hpp"
+#include "JuceHeader.h"
+#include "KnobComponent.hpp"
+#include "Parsing.hpp"
+#include "PluginProcessor.hpp"
 
 class HSynthAudioProcessorEditor;
 
@@ -40,7 +41,8 @@ class HSynthAudioProcessorEditor : public juce::AudioProcessorEditor {
 
     juce::Component dummy;
 
-    KnobComponent aKnob, bKnob, attackKnob, decayKnob, sustainKnob, releaseKnob;
+    KnobComponent aKnob, bKnob, attackKnob, decayKnob, sustainKnob, releaseKnob,
+        voicesKnob, detuneKnob;
     PListener aListener, bListener;
 
     juce::TextEditor formula;

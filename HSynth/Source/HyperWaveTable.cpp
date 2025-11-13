@@ -335,3 +335,205 @@ std::ostream& operator<<(std::ostream& stream, const struct HyperToken& tok) {
     }
     return stream;
 }
+
+void HyperToken::printGLSL(std::ostringstream& str) const {
+    switch (this->type) {
+        case HyperToken::FUNCTION:
+            switch (this->func) {
+                case SIN:
+                    str << "sin(";
+                    a->printGLSL(str);
+                    str << ")";
+                    break;
+                case COS:
+                    str << "cos(";
+                    a->printGLSL(str);
+                    str << ")";
+                    break;
+                case TAN:
+                    str << "tan(";
+                    a->printGLSL(str);
+                    str << ")";
+                    break;
+                case ASIN:
+                    str << "asin(";
+                    a->printGLSL(str);
+                    str << ")";
+                    break;
+                case ACOS:
+                    str << "acos(";
+                    a->printGLSL(str);
+                    str << ")";
+                    break;
+                case ATAN:
+                    str << "atan(";
+                    a->printGLSL(str);
+                    str << ")";
+                    break;
+                case LN:
+                    str << "log(";
+                    a->printGLSL(str);
+                    str << ")";
+                    break;
+                case EXP:
+                    str << "exp(";
+                    a->printGLSL(str);
+                    str << ")";
+                    break;
+                case SQRT:
+                    str << "sqrt(";
+                    a->printGLSL(str);
+                    str << ")";
+                    break;
+                case COSH:
+                    str << "cosh(";
+                    a->printGLSL(str);
+                    str << ")";
+                    break;
+                case SINH:
+                    str << "sinh(";
+                    a->printGLSL(str);
+                    str << ")";
+                    break;
+                case TANH:
+                    str << "tanh(";
+                    a->printGLSL(str);
+                    str << ")";
+                    break;
+                case ABS:
+                    str << "abs(";
+                    a->printGLSL(str);
+                    str << ")";
+                    break;
+                case SIGN:
+                    str << "sign(";
+                    a->printGLSL(str);
+                    str << ")";
+                    break;
+                case ERF:
+                    str << "erf(";
+                    a->printGLSL(str);
+                    str << ")";
+                    break;
+                case MAX:
+                    str << "max((";
+                    a->printGLSL(str);
+                    str << "),(";
+                    b->printGLSL(str);
+                    str << "))";
+                    break;
+                case MIN:
+                    str << "min((";
+                    a->printGLSL(str);
+                    str << "),(";
+                    b->printGLSL(str);
+                    str << "))";
+                    break;
+                case GAMMA:
+                    str << "gamma(";
+                    a->printGLSL(str);
+                    str << ")";
+                    break;
+                case ROUND:
+                    str << "round(";
+                    a->printGLSL(str);
+                    str << ")";
+                    break;
+                case CEIL:
+                    str << "ceil(";
+                    a->printGLSL(str);
+                    str << ")";
+                    break;
+                case FLOOR:
+                    str << "floor(";
+                    a->printGLSL(str);
+                    str << ")";
+                    break;
+                default:
+                    break;
+            }
+            break;
+        case HyperToken::VARIABLE:
+            str << this->var;
+            break;
+        case HyperToken::NUMBER:
+            str << this->number;
+            break;
+        case HyperToken::ADD:
+            str << "(";
+            a->printGLSL(str);
+            str << ")+(";
+            b->printGLSL(str);
+            str << ")";
+            break;
+        case HyperToken::SUB:
+            str << "(";
+            a->printGLSL(str);
+            str << ")-(";
+            b->printGLSL(str);
+            str << ")";
+            break;
+        case HyperToken::DIV:
+            str << "(";
+            a->printGLSL(str);
+            str << ")/(";
+            b->printGLSL(str);
+            str << ")";
+            break;
+        case HyperToken::MUL:
+            str << "(";
+            a->printGLSL(str);
+            str << ")*(";
+            b->printGLSL(str);
+            str << ")";
+            break;
+        case HyperToken::POW:
+            str << "pow((";
+            a->printGLSL(str);
+            str << "),(";
+            b->printGLSL(str);
+            str << "))";
+            break;
+        case HyperToken::MOD:
+            str << "mod((";
+            a->printGLSL(str);
+            str << "),(";
+            b->printGLSL(str);
+            str << "))";
+            break;
+        case HyperToken::LESS:
+            str << "((";
+            a->printGLSL(str);
+            str << ")<(";
+            b->printGLSL(str);
+            str << "))";
+            break;
+        case HyperToken::LESS_OR_EQUAL:
+            str << "((";
+            a->printGLSL(str);
+            str << ")<=(";
+            b->printGLSL(str);
+            str << "))";
+            break;
+        case HyperToken::GREATER:
+            str << "((";
+            a->printGLSL(str);
+            str << ")>(";
+            b->printGLSL(str);
+            str << "))";
+            break;
+        case HyperToken::GREATER_OR_EQUAL:
+            str << "((";
+            a->printGLSL(str);
+            str << ")>=(";
+            b->printGLSL(str);
+            str << "))";
+            break;
+        case HyperToken::PARENTHESIS:
+            str << "(";
+            a->printGLSL(str);
+            str << ")";
+        default:
+            break;
+    }
+}

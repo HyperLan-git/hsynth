@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="LXKMMQ" name="HSynth" projectType="audioplug" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" pluginCharacteristicsValue="pluginIsSynth,pluginWantsMidiIn">
   <MAINGROUP id="jwmmb6" name="HSynth">
     <GROUP id="{11D113A9-A249-0F97-C249-F795077D1B65}" name="Source">
       <FILE id="aFH3uR" name="OpenGLException.hpp" compile="0" resource="0"

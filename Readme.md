@@ -20,3 +20,9 @@ You can clean binaries with `make clean`.
 
 ## Presets
 `arctan((1+b*20)*sin(p+a*30*sin(p)))*2/P`
+```
+sine: sin(p)
+tri: abs(2-abs(1-t*4))-1
+square: sign(t-0.5)
+saw: (t+0.5)%1*2-1
+```

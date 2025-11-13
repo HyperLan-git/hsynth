@@ -12,7 +12,9 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
       attackKnob(p.getAttackParam()),
       decayKnob(p.getDecayParam()),
       sustainKnob(p.getSustainParam()),
-      releaseKnob(p.getReleaseParam()) {
+      releaseKnob(p.getReleaseParam()),
+      voicesKnob(p.getVoicesParam()),
+      detuneKnob(p.getDetuneParam()) {
     setSize(800, 700);
     this->error.setColour(juce::Label::textColourId, juce::Colours::red);
     this->formula.setFont(juce::FontOptions(20.0f));
@@ -53,6 +55,8 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
     this->addAndMakeVisible(this->decayKnob);
     this->addAndMakeVisible(this->sustainKnob);
     this->addAndMakeVisible(this->releaseKnob);
+    this->addAndMakeVisible(this->voicesKnob);
+    this->addAndMakeVisible(this->detuneKnob);
 }
 
 HSynthAudioProcessorEditor::~HSynthAudioProcessorEditor() {
@@ -95,6 +99,8 @@ void HSynthAudioProcessorEditor::resized() {
     this->decayKnob.setBounds({700, 100, 100, 100});
     this->sustainKnob.setBounds({700, 200, 100, 100});
     this->releaseKnob.setBounds({700, 300, 100, 100});
+    this->voicesKnob.setBounds({700, 400, 100, 100});
+    this->detuneKnob.setBounds({700, 500, 100, 100});
 }
 
 PListener::PListener(juce::RangedAudioParameter* param,

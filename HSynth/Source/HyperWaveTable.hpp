@@ -2,14 +2,16 @@
 
 #define _USE_MATH_DEFINES
 
-#include <cstring>
-#include <cstddef>
-#include <memory>
-#include <vector>
 #include <cmath>
+#include <cstddef>
+#include <cstring>
 #include <iostream>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <vector>
 
-// TODO add assertions for ptrs
+// TODO cpp-ify all this
 
 #ifndef M_PI
 #define M_PI 3.14159265f
@@ -43,7 +45,7 @@ enum Function {
     CEIL
 };
 
-constexpr char* functions[] = {
+constexpr std::string functions[] = {
     "sin", "cos",  "tan",  "asin",  "acos",  "arctan", "log",
     "exp", "sqrt", "cosh", "sinh",  "tanh",  "abs",    "sign",
     "erf", "max",  "min",  "gamma", "round", "floor",  "ceil"};
@@ -82,6 +84,8 @@ struct HyperToken {
         delete b;
     }
 
+    void printGLSL(std::ostringstream& str) const;
+
     static bool isOperator(HyperToken::Type t) { return t >= Type::ADD; }
 
     static int cmpPriority(HyperToken::Type type1, HyperToken::Type type2) {
@@ -92,7 +96,9 @@ struct HyperToken {
 
 std::ostream& operator<<(std::ostream& stream, const struct HyperToken& tok);
 
-constexpr static std::size_t pow256(std::size_t n) { return (std::size_t)0x1 << (n << 1); }
+constexpr static std::size_t pow256(std::size_t n) {
+    return (std::size_t)0x1 << (n << 1);
+}
 
 float computeSample(double t, const struct HyperToken& tok, float* params,
                     std::size_t nParams);
