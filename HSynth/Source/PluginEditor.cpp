@@ -75,9 +75,9 @@ void HSynthAudioProcessorEditor::paint(juce::Graphics& g) {
     g.setColour(juce::Colours::yellow);
     g.setFont(juce::FontOptions(15.0f));
     constexpr float startX = 50, endX = 650;
-    constexpr float startY = 100, endY = 700;
+    constexpr float startY = 100, endY = 690;
     constexpr int maxI = 1024;
-    const auto& frame = audioProcessor.getCurrentFrame();
+    const WTFrame& frame = audioProcessor.getCurrentFrame();
     juce::Path p;
     p.preallocateSpace(3 * maxI);
     p.startNewSubPath(50, -frame[0] * 300 + 400);
@@ -118,7 +118,7 @@ void PListener::parameterValueChanged(int parameterIndex, float newValue) {
 }
 
 void PListener::parameterGestureChanged(int parameterIndex,
-    bool gestureIsStarting) {
+                                        bool gestureIsStarting) {
     (void)parameterIndex;
     (void)gestureIsStarting;
 }

@@ -197,13 +197,15 @@ void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                 const float detuneVal =
                     ((i - voicesPerNote / 2.f) * 2 * detune / voicesPerNote /
                      voicesPerNote);
+                const float panVal = (i % 2 == 0) ? -1.f * i / voicesPerNote
+                                                  : 1.f * i / voicesPerNote;
                 for (Voice& v : voices) {
                     if (v.velocity) continue;
                     v.note = msg.getNoteNumber();
                     v.velocity = msg.getVelocity();
                     v.timeStart = e.samplePosition;
                     v.detune = voicesPerNote == 1 ? 0 : detuneVal;
-                    v.pan = 0;
+                    v.pan = voicesPerNote == 1 ? 0 : panVal;
                     v.freq =
                         (getFreq(v.note)) * (1. + v.detune * SEMITONE_PITCH);
                     v.amp = 1. / voicesPerNote;
@@ -221,7 +223,8 @@ void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         }
     }
 
-    float* channelData = buffer.getWritePointer(0);
+    float* leftData = buffer.getWritePointer(0);
+    float* rightData = buffer.getWritePointer(1);
     double sampleRate = this->getSampleRate();
     if (sampleRate == 0) sampleRate = prevValidSampleRate;
     const int sampleAttack = (*attack) * sampleRate;
@@ -245,10 +248,16 @@ void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         }
         const float freq = v.freq + hzShift;
         const float dt = freq / sampleRate;
+        const float leftAmp =
+            (std::cos(v.pan * M_PI / 2) + std::sin(v.pan * M_PI / 2)) *
+            std::sqrt(2) / 2;
+        const float rightAmp =
+            (std::cos(v.pan * M_PI / 2) - std::sin(v.pan * M_PI / 2)) *
+            std::sqrt(2) / 2;
         for (int i = v.timeStart > 0 ? v.timeStart : 0; i < samples; i++) {
-            float idx = v.phase * 2047;
-            int fl = (int)std::floor(idx);
-            float dif = idx - fl;
+            const float idx = v.phase * 2047;
+            const int fl = (int)std::floor(idx);
+            const float dif = idx - fl;
             float amplitude = sus;
             if (v.timeRelease != INT64_MIN && i > v.timeRelease)
                 amplitude = interpolExp((int)(i - v.timeRelease), sampleRel,
@@ -262,11 +271,14 @@ void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
             if (i == v.timeRelease) v.releaseAmp = amplitude;
 
-            if (fl >= 2047)
-                channelData[i] += amplitude * v.amp * frame[2047];
-            else {
-                channelData[i] += amplitude * v.amp *
-                                  ((1 - dif) * frame[fl] + dif * frame[fl + 1]);
+            if (fl >= 2047) {
+                leftData[i] += leftAmp * amplitude * v.amp * frame[2047];
+                rightData[i] += rightAmp * amplitude * v.amp * frame[2047];
+            } else {
+                leftData[i] += leftAmp * amplitude * v.amp *
+                               ((1 - dif) * frame[fl] + dif * frame[fl + 1]);
+                rightData[i] += rightAmp * amplitude * v.amp *
+                                ((1 - dif) * frame[fl] + dif * frame[fl + 1]);
             }
             v.phase += dt;
             if (v.phase > 1) v.phase -= 1;
@@ -279,11 +291,6 @@ void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     constexpr float GLOBAL_VOLUME = .1f;
 
     buffer.applyGain(GLOBAL_VOLUME);
-
-    for (int channel = 1; channel < outputs; ++channel) {
-        auto* d = buffer.getWritePointer(channel);
-        std::memcpy(d, channelData, (std::size_t)(sizeof(float) * samples));
-    }
 }
 
 // XXX Emit directly gpu assembly instructions
@@ -331,7 +338,7 @@ void HSynthAudioProcessor::computeBuffer(const std::string& formulaStr) {
 
     while (!this->context.makeActive() && this->context.isAttached());
 
-    if (formula != this->formula) {
+    if (formulaStr != this->formula) {
         std::ostringstream str;
         this->formulaTree->printGLSL(str);
         std::cout << str.str();
@@ -394,7 +401,6 @@ void HSynthAudioProcessor::computeBuffer(const std::string& formulaStr) {
     if (!buf.unMap()) {
         std::cerr << "Memory corruption!\n";
     }
-    // this->context.deactivateCurrentContext();
 }
 
 bool HSynthAudioProcessor::hasEditor() const { return true; }

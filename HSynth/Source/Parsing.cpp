@@ -22,7 +22,7 @@ struct HyperToken* parseSymbol(const char*& c, std::string& err) {
         err = std::string("Invalid character near : ") + std::string(c);
         return nullptr;
     }
-    for (int i = 0; i < sizeof(functions) / sizeof(char*); i++) {
+    for (int i = 0; i < sizeof(functions) / sizeof(std::string); i++) {
         const char* c2 = functions[i].c_str();
         std::size_t l = functions[i].length();
         if (std::strncmp(c, c2, l) == 0 && c[l] == '(') {
