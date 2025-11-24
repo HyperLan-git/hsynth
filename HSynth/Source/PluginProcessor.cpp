@@ -15,8 +15,8 @@ HSynthAudioProcessor::HSynthAudioProcessor()
               )
 #endif
       ,
-      hz_shift(new juce::AudioParameterFloat({"hz_shift", 1}, "Frequency shift",
-                                             -10000, 10000, 0)),
+      hzShift(new juce::AudioParameterFloat({"hz_shift", 1}, "Frequency shift",
+                                            -10000, 10000, 0)),
       a(new juce::AudioParameterFloat(juce::ParameterID("a", 1), "a", 0, 1, 0)),
       b(new juce::AudioParameterFloat(juce::ParameterID("b", 1), "b", 0, 1, 0)),
       attack(new juce::AudioParameterFloat(juce::ParameterID("attack", 1),
@@ -30,16 +30,23 @@ HSynthAudioProcessor::HSynthAudioProcessor()
       voicesPerNote(new juce::AudioParameterInt(juce::ParameterID("voices", 1),
                                                 "voices", 1, 16, 1)),
       detune(new juce::AudioParameterFloat(juce::ParameterID("detune", 1),
-                                           "detune", 0, 2, .2f)) {
+                                           "detune", 0, 2, .2f)),
+      phase(new juce::AudioParameterFloat(juce::ParameterID("phase", 1),
+                                          "phase", 0, 1, 0)),
+      phaseRandomness(
+          new juce::AudioParameterFloat(juce::ParameterID("phaseRandomness", 1),
+                                        "phaseRandomness", 0, 100, 100)) {
     addParameter(a);
     addParameter(b);
     addParameter(attack);
     addParameter(decay);
     addParameter(sustain);
     addParameter(release);
-    addParameter(hz_shift);
+    addParameter(hzShift);
     addParameter(voicesPerNote);
     addParameter(detune);
+    addParameter(phase);
+    addParameter(phaseRandomness);
 
     this->context.setOpenGLVersionRequired(
         juce::OpenGLContext::OpenGLVersion::openGL4_3);
@@ -162,6 +169,8 @@ float interpolExp(int samplesSinceStart, int sampleDuration, float start,
 
 float sigmoid(float x) { return 1 / (1.f + std::exp(-x)); }
 double prevValidSampleRate = 0;
+std::random_device randomDev;
+std::uniform_real_distribution<float> randFloat(0, 1);
 void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                                         juce::MidiBuffer& midiMessages) {
     juce::ScopedNoDenormals noDenormals;
@@ -171,6 +180,8 @@ void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
     const int voicesPerNote = *this->voicesPerNote;
     const float detune = *this->detune;
+    const float phase = *this->phase;
+    const float phaseRandomness = *this->phaseRandomness;
 
     for (const auto& e : midiMessages) {
         const juce::MidiMessage& msg = e.getMessage();
@@ -206,10 +217,16 @@ void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                     v.timeStart = e.samplePosition;
                     v.detune = voicesPerNote == 1 ? 0 : detuneVal;
                     v.pan = voicesPerNote == 1 ? 0 : panVal;
+                    v.noteDetune = detune;
                     v.freq =
                         (getFreq(v.note)) * (1. + v.detune * SEMITONE_PITCH);
                     v.amp = 1. / voicesPerNote;
-                    v.phase = 0;
+                    v.phase = std::fmod(
+                        phase + (phaseRandomness > 0
+                                     ? phaseRandomness * randFloat(randomDev)
+                                     : 0),
+                        1);
+                    v.startingPhase = v.phase;
                     v.timeRelease = INT64_MIN;
                     freeVoices--;
                     break;
@@ -232,7 +249,7 @@ void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     const int sampleRel = (*release) * sampleRate;
     const float sus = *sustain;
 
-    const float hzShift = *hz_shift;
+    const float freqShift = *hzShift;
 
     if (sampleRate == 0 || freeVoices == MAX_VOICES) return;
     prevValidSampleRate = sampleRate;
@@ -246,7 +263,7 @@ void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
             freeVoices++;
             continue;
         }
-        const float freq = v.freq + hzShift;
+        const float freq = v.freq + freqShift;
         const float dt = freq / sampleRate;
         const float leftAmp =
             (std::cos(v.pan * M_PI / 2) + std::sin(v.pan * M_PI / 2)) *
@@ -256,7 +273,7 @@ void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
             std::sqrt(2) / 2;
         for (int i = v.timeStart > 0 ? v.timeStart : 0; i < samples; i++) {
             const float idx = v.phase * 2047;
-            const int fl = (int)std::floor(idx);
+            const unsigned int fl = (unsigned int)std::floor(idx);
             const float dif = idx - fl;
             float amplitude = sus;
             if (v.timeRelease != INT64_MIN && i > v.timeRelease)
@@ -272,13 +289,18 @@ void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
             if (i == v.timeRelease) v.releaseAmp = amplitude;
 
             if (fl >= 2047) {
-                leftData[i] += leftAmp * amplitude * v.amp * frame[2047];
-                rightData[i] += rightAmp * amplitude * v.amp * frame[2047];
+                const float val = amplitude * v.amp * frame[2047];
+                if (std::isfinite(val)) {
+                    leftData[i] += leftAmp * val;
+                    rightData[i] += rightAmp * val;
+                }
             } else {
-                leftData[i] += leftAmp * amplitude * v.amp *
-                               ((1 - dif) * frame[fl] + dif * frame[fl + 1]);
-                rightData[i] += rightAmp * amplitude * v.amp *
-                                ((1 - dif) * frame[fl] + dif * frame[fl + 1]);
+                const float val = amplitude * v.amp *
+                                  ((1 - dif) * frame[fl] + dif * frame[fl + 1]);
+                if (std::isfinite(val)) {
+                    leftData[i] += leftAmp * val;
+                    rightData[i] += rightAmp * val;
+                }
             }
             v.phase += dt;
             if (v.phase > 1) v.phase -= 1;

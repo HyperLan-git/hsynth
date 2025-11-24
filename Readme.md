@@ -1,6 +1,6 @@
 # HSynth
 A synthesizer that can parse a mathematical expression to turn it into a multidimensional wavetable. Interpolation on it is then performed just like
-what happens in computer graphics.
+what happens to textures in computer graphics.
 It can also take external input and operate on it as if it was an oscillator. I want to push my understanding of dsp and maths in general to its limits and implement approximations of operators that are as precise as possible.
 
 ## Dependencies
@@ -19,10 +19,14 @@ To compile in Release mode (with optimisations and no memory sanitizer), use `ma
 You can clean binaries with `make clean`.
 
 ## Presets
-`arctan((1+b*20)*sin(p+a*30*sin(p)))*2/P`
 ```
 sine: sin(p)
 tri: abs(2-abs(1-t*4))-1
 square: sign(t-0.5)
 saw: (t+0.5)%1*2-1
+fm saw: ((t+(b*10*(abs(2-abs(1-t*4))-1))+a*5*sin(p)+0.5)%1*2-1)*sin(p)*sign(t-0.5)
+distorted sine: arctan((1+b*20)*sin(p+a*30*sin(p)))*2/P
+F pulse: arctan(5*cos(20*a*a*p)*(tan(p**(1+b))))/P
+F pulse 2: arctan(cos((0.2*b+1)**(p*P)*t)**sin(p*(0-p)**((0.3+a*2)*p/5)))/P
+P mod: sin(tan(sin(p*(1+b))+abs(sin(p*(1+b))%((a+0.2)/2+0.001))**3))
 ```

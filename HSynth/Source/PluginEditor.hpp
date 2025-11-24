@@ -42,11 +42,11 @@ class HSynthAudioProcessorEditor : public juce::AudioProcessorEditor {
     juce::Component dummy;
 
     KnobComponent aKnob, bKnob, attackKnob, decayKnob, sustainKnob, releaseKnob,
-        voicesKnob, detuneKnob;
+        voicesKnob, detuneKnob, phaseKnob, phaseRandKnob;
     PListener aListener, bListener;
 
     juce::TextEditor formula;
-    juce::Label title, error;
+    juce::Label title, error, loadingText;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(HSynthAudioProcessorEditor)
 };
