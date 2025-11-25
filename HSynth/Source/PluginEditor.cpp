@@ -16,7 +16,9 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
       voicesKnob(p.getVoicesParam()),
       detuneKnob(p.getDetuneParam()),
       phaseKnob(p.getPhaseParam()),
-      phaseRandKnob(p.getPhaseRandomnessParam()) {
+      phaseRandKnob(p.getPhaseRandomnessParam()),
+      stShiftKnob(p.getStShiftParam()),
+      hzShiftKnob(p.getHzShiftParam()) {
     setSize(900, 700);
     this->error.setColour(juce::Label::textColourId, juce::Colours::red);
     this->formula.setFont(juce::FontOptions(20.0f));
@@ -30,8 +32,6 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
 
     this->formula.onReturnKey = this->formula.onFocusLost = [=] {
         std::string formula(this->formula.getText().toStdString());
-        this->loadingText.setVisible(true);
-        this->repaint(this->loadingText.getBounds());
         this->audioProcessor.getContext().executeOnGLThread(
             [=](juce::OpenGLContext& ctx) {
                 (void)ctx;
@@ -44,14 +44,9 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
                 redrawGraph();
             },
             false);
-        this->loadingText.setVisible(false);
     };
     this->setWantsKeyboardFocus(true);
     this->formula.onEscapeKey = [=] { this->grabKeyboardFocus(); };
-    this->loadingText.setText(juce::String("Loading..."),
-                              juce::NotificationType::dontSendNotification);
-    this->loadingText.setColour(juce::Label::textColourId,
-                                juce::Colours::greenyellow);
 
     // Must be first one
     this->addAndMakeVisible(this->dummy);
@@ -68,9 +63,8 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
     this->addAndMakeVisible(this->detuneKnob);
     this->addAndMakeVisible(this->phaseKnob);
     this->addAndMakeVisible(this->phaseRandKnob);
-    this->addAndMakeVisible(this->loadingText);
-
-    this->loadingText.setVisible(false);
+    this->addAndMakeVisible(this->stShiftKnob);
+    this->addAndMakeVisible(this->hzShiftKnob);
 }
 
 HSynthAudioProcessorEditor::~HSynthAudioProcessorEditor() {
@@ -109,7 +103,6 @@ void HSynthAudioProcessorEditor::resized() {
     this->title.setBounds({100, 0, 400, 25});
     this->formula.setBounds({100, 25, 400, 50});
     this->error.setBounds({100, 75, 400, 25});
-    this->loadingText.setBounds({100, 100, 400, 25});
     this->aKnob.setBounds({500, 0, 100, 100});
     this->bKnob.setBounds({600, 0, 100, 100});
     this->attackKnob.setBounds({700, 0, 100, 100});
@@ -120,6 +113,8 @@ void HSynthAudioProcessorEditor::resized() {
     this->detuneKnob.setBounds({700, 500, 100, 100});
     this->phaseKnob.setBounds({800, 0, 100, 100});
     this->phaseRandKnob.setBounds({800, 100, 100, 100});
+    this->hzShiftKnob.setBounds({800, 200, 100, 100});
+    this->stShiftKnob.setBounds({800, 300, 100, 100});
 }
 
 PListener::PListener(juce::RangedAudioParameter* param,

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstring>
 #include <memory>
 #include <random>
 
@@ -11,14 +12,15 @@
 #define MAX_VOICES 64
 
 struct Voice {
-    uint8_t note = 0, velocity = 0;
+    uint8_t note = 0, velocity = 0, voices = 1, voice = 0;
     int64_t timeStart = 0, timeRelease = 0;
     float releaseAmp = 0;
-    float noteDetune = 0;
-    float detune = 0, freq = 0, amp = 0, pan = 0;
+    float voiceDetune = 0;
+    float detune = 0, amp = 0, pan = 0;
+    double freq = 0;
     // Between 0 and 1
     float startingPhase = 0;
-    float phase = 0;
+    double phase = 0;
 };
 
 using WTFrame = float[2048];
@@ -103,6 +105,11 @@ class HSynthAudioProcessor : public juce::AudioProcessor {
 
     juce::AudioParameterInt* voicesPerNote;
     juce::AudioParameterFloat *detune, *phaseRandomness;
+
+    juce::AudioParameterBool* limiter;
+
+    double prevValidSampleRate = 0;
+    float prevPhase = 0, prevDetune = 0;
 
     // TODO lfo system/other envelopes maybe?
 
