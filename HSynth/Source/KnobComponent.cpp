@@ -52,7 +52,7 @@ KnobComponent::KnobComponent(juce::RangedAudioParameter* param, double step)
 
     knob.setLookAndFeel(&lf);
     knob.setColour(juce::Slider::thumbColourId, juce::Colours::grey.brighter());
-    knob.setSliderStyle(juce::Slider::SliderStyle::Rotary);
+    knob.setSliderStyle(juce::Slider::SliderStyle::RotaryVerticalDrag);
     knob.setTextBoxStyle(juce::Slider::TextBoxAbove, false, 100, 20);
 
     auto range = param->getNormalisableRange();
@@ -65,7 +65,7 @@ KnobComponent::KnobComponent(juce::RangedAudioParameter* param, double step)
 KnobComponent::~KnobComponent() { knob.setLookAndFeel(nullptr); }
 
 void KnobComponent::paint(juce::Graphics& g) {
-    g.fillAll(juce::Colours::black);
+    g.fillAll(juce::Colours::black.withAlpha(0.2f));
 }
 
 double KnobComponent::getValue() const { return knob.getValue(); }

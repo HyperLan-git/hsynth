@@ -9,7 +9,7 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
       aListener(p.getAParam(), this),
       bKnob(p.getBParam()),
       bListener(p.getBParam(), this),
-      attackKnob(p.getAttackParam(), 0.0001),
+      attackKnob(p.getAttackParam()),
       decayKnob(p.getDecayParam()),
       sustainKnob(p.getSustainParam()),
       releaseKnob(p.getReleaseParam()),
@@ -18,7 +18,8 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
       phaseKnob(p.getPhaseParam()),
       phaseRandKnob(p.getPhaseRandomnessParam()),
       stShiftKnob(p.getStShiftParam()),
-      hzShiftKnob(p.getHzShiftParam()) {
+      hzShiftKnob(p.getHzShiftParam()),
+      timer(*this) {
     setSize(900, 700);
     this->error.setColour(juce::Label::textColourId, juce::Colours::red);
     this->formula.setFont(juce::FontOptions(20.0f));
@@ -48,8 +49,6 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
     this->setWantsKeyboardFocus(true);
     this->formula.onEscapeKey = [=] { this->grabKeyboardFocus(); };
 
-    // Must be first one
-    this->addAndMakeVisible(this->dummy);
     this->addAndMakeVisible(this->title);
     this->addAndMakeVisible(this->formula);
     this->addAndMakeVisible(this->error);
@@ -65,38 +64,68 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
     this->addAndMakeVisible(this->phaseRandKnob);
     this->addAndMakeVisible(this->stShiftKnob);
     this->addAndMakeVisible(this->hzShiftKnob);
+
+    shader =
+        std::make_unique<juce::OpenGLGraphicsContextCustomShader>(animShader);
+    timer.startTimer(1000 / 60);
 }
 
 HSynthAudioProcessorEditor::~HSynthAudioProcessorEditor() {
+    shader.reset();
     auto context = juce::OpenGLContext::getContextAttachedTo(*this);
     if (context) context->detach();
 }
 
 void HSynthAudioProcessorEditor::redrawGraph() {
+    this->drawGraph = true;
     juce::MessageManager::callAsync(
         [=]() { this->repaint({45, 95, 660, 710}); });
 }
-
+int frame = 0;
 void HSynthAudioProcessorEditor::paint(juce::Graphics& g) {
-    g.fillAll(juce::Colours::black);
+    g.fillAll(juce::Colours::black.withAlpha(0.99f));
 
-    g.setColour(juce::Colours::yellow);
-    g.setFont(juce::FontOptions(15.0f));
+    juce::Result result = shader->checkCompilation(g.getInternalContext());
+    if (!result.failed()) {
+        if (!timeUniform) {
+            timeUniform.emplace(*(shader->getProgram(g.getInternalContext())),
+                                "time");
+        }
+
+        g.setColour(juce::Colours::black);
+        std::chrono::time_point<std::chrono::system_clock> time =
+            std::chrono::system_clock::now();
+        std::chrono::duration<float> elapsed_seconds = time - start;
+        shader->getProgram(g.getInternalContext())->use();
+        timeUniform->set(std::fmod(elapsed_seconds.count(), 30.0f));
+        shader->fillRect(g.getInternalContext(), getLocalBounds());
+    }
+
+    g.setColour(juce::Colours::cyan.darker(0.90f).withAlpha(0.7f));
     constexpr float startX = 50, endX = 650;
     constexpr float startY = 100, endY = 690;
-    constexpr int maxI = 1024;
-    const WTFrame& frame = audioProcessor.getCurrentFrame();
-    juce::Path p;
-    p.preallocateSpace(3 * maxI);
-    const float start = std::isfinite(frame[0]) ? frame[0] : 0;
-    p.startNewSubPath(startX, (1 - start) * (endY - startY) / 2 + startY);
-    for (int i = 1; i < maxI; i++) {
-        float x = startX + i * (endX - startX) / maxI,
-              y = (1 - frame[i * 2048 / maxI]) * (endY - startY) / 2 + startY;
-        if (!std::isfinite(y)) y = (endY - startY) / 2 + startY;
-        p.lineTo(x, y);
+    g.fillRect(startX, startY, endX - startX, endY - startY);
+    g.setColour(juce::Colours::yellow);
+    g.setFont(juce::FontOptions(15.0f));
+    if (drawGraph) {
+        drawGraph = false;
+        graph = juce::Path();
+        constexpr int maxI = 300;
+        const WTFrame& frame = audioProcessor.getCurrentFrame();
+
+        graph.preallocateSpace(3 * maxI);
+        const float start = std::isfinite(frame[0]) ? frame[0] : 0;
+        graph.startNewSubPath(startX,
+                              (1 - start) * (endY - startY) / 2 + startY);
+        for (int i = 1; i < maxI; i++) {
+            float x = startX + i * (endX - startX) / maxI,
+                  y = (1 - frame[i * 2048 / maxI]) * (endY - startY) / 2 +
+                      startY;
+            if (!std::isfinite(y)) y = (endY - startY) / 2 + startY;
+            graph.lineTo(x, y);
+        }
     }
-    g.strokePath(p, juce::PathStrokeType(2));
+    g.strokePath(graph, juce::PathStrokeType(2));
 }
 
 void HSynthAudioProcessorEditor::resized() {
@@ -135,4 +164,13 @@ void PListener::parameterGestureChanged(int parameterIndex,
                                         bool gestureIsStarting) {
     (void)parameterIndex;
     (void)gestureIsStarting;
+}
+
+RepaintTimer::RepaintTimer(juce::Component& comp) : toRepaint(comp) {}
+
+RepaintTimer::~RepaintTimer() {}
+
+void RepaintTimer::timerCallback() {
+    juce::MessageManager::callAsync(
+        [=]() { this->toRepaint.repaint(this->toRepaint.getBounds()); });
 }

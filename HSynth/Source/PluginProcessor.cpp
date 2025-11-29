@@ -468,8 +468,6 @@ bool HSynthAudioProcessor::hasEditor() const { return true; }
 juce::AudioProcessorEditor* HSynthAudioProcessor::createEditor() {
     auto* editor = new HSynthAudioProcessorEditor(*this);
     this->context.attachTo(*(editor));
-    this->context.setContinuousRepainting(true);
-    this->context.setSwapInterval(60);
     return editor;
 }
 
