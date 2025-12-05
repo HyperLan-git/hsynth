@@ -141,8 +141,8 @@ class HyperWaveTable {
     bool fillBlockConst(float* block, int sz, float* parameters, float& phase,
                         float frequency, float sampleRate) const;
 
-    void fillBlock(float* block, int sz, float* parameters, float& phase,
-                   float frequency);
+    //void fillBlock(float* block, int sz, float* parameters, float& phase,
+    //               float frequency);
 
     static constexpr std::size_t samples = WAVETABLE_TIME_SAMPLES;
 

@@ -57,6 +57,9 @@ HSynthAudioProcessor::HSynthAudioProcessor()
 
     this->context.setOpenGLVersionRequired(
         juce::OpenGLContext::OpenGLVersion::openGL4_3);
+#ifdef _WIN64
+    std::memset(data, 0, sizeof(WTFrame) * 256 * 256);
+#endif
 }
 
 HSynthAudioProcessor::~HSynthAudioProcessor() {
@@ -158,11 +161,12 @@ double getFreq(int midiPitch) {
     return (double)(result * std::pow(SEMITONE_PITCH, midiPitch - 69) * 440);
 }
 
-constexpr float interpolExp(int samplesSinceStart, int sampleDuration,
-                            float start, float end, bool negCurve = true) {
+const float denNeg = (float)std::exp(-1) - 1;
+const float denPos = (float)std::exp(1) - 1;
+
+float interpolExp(int samplesSinceStart, int sampleDuration, float start,
+                  float end, bool negCurve = true) {
     if (samplesSinceStart > sampleDuration) return end;
-    constexpr float denNeg = std::exp(-1) - 1;
-    constexpr float denPos = std::exp(1) - 1;
     if (!negCurve)
         return start +
                (end - start) *
@@ -175,8 +179,7 @@ constexpr float interpolExp(int samplesSinceStart, int sampleDuration,
 }
 
 float sigmoid(float x) { return 1 / (1.f + std::exp(-x)); }
-std::random_device randomDev;
-std::uniform_real_distribution<float> randFloat(0, 1);
+int prevValidSampleRate = 0;
 void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                                         juce::MidiBuffer& midiMessages) {
     juce::ScopedNoDenormals noDenormals;
@@ -219,8 +222,8 @@ void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                                                   : 1.f * i / voicesPerNote;
                 for (Voice& v : voices) {
                     if (v.velocity) continue;
-                    v.note = msg.getNoteNumber();
-                    v.velocity = msg.getVelocity();
+                    v.note = (uint8_t) msg.getNoteNumber();
+                    v.velocity = (uint8_t) msg.getVelocity();
                     v.timeStart = e.samplePosition;
                     v.detune = voicesPerNote == 1 ? 0 : detuneVal;
                     v.pan = voicesPerNote == 1 ? 0 : panVal;
@@ -270,7 +273,7 @@ void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
     float* leftData = buffer.getWritePointer(0);
     float* rightData = buffer.getWritePointer(1);
-    double sampleRate = this->getSampleRate();
+    int sampleRate = (int)this->getSampleRate();
     if (sampleRate == 0) sampleRate = prevValidSampleRate;
     const int sampleAttack = (*attack) * sampleRate;
     const int sampleDecay = (*decay) * sampleRate;

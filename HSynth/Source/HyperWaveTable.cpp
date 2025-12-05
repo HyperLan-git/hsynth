@@ -74,17 +74,18 @@ constexpr float E = 0.577215664901532860606512f;
 
 float computeVariable(double t, const struct HyperToken& tok, float* params,
                       std::size_t nParams) {
+    (void)nParams;
     switch (tok.var) {
         case 'e':
             return E;
         case 'P':
-            return M_PI;
+            return (float)M_PI;
         case 'T':
-            return M_PI * 2;
+            return (float)M_PI * 2;
         case 't':
-            return t;
+            return (float)t;
         case 'p':
-            return t * M_PI * 2;
+            return (float)(t * M_PI * 2);
         case 'a':
             return params[0];
         case 'b':
@@ -149,7 +150,7 @@ std::size_t getBoolIndex(float* paramValues, std::size_t params) {
     std::size_t res = 0;
     for (std::size_t i = 0; i < params; i++) {
         res *= WAVETABLE_PARAM_SAMPLES;
-        res += paramValues[i] * WAVETABLE_PARAM_SAMPLES;
+        res += (std::size_t)(paramValues[i] * WAVETABLE_PARAM_SAMPLES);
     }
     return res;
 }
@@ -160,7 +161,7 @@ void HyperWaveTable::compute(std::size_t paramFill, float* paramValues) {
         struct HyperToken root = *(this->f);
         std::size_t index = getBoolIndex(paramValues, this->params);
         for (std::size_t i = 0; i < samples; i++) {
-            double t = i;
+            double t = (double)i;
             t /= samples;
             this->content[index * samples + i] =
                 computeSample(t, root, paramValues, this->params);
@@ -192,20 +193,20 @@ bool HyperWaveTable::fillBlockConst(float* block, int sz, float* parameters,
         float d = parameters[i] * WAVETABLE_PARAM_SAMPLES;
         float min = std::floor(d);
         if (d == WAVETABLE_PARAM_SAMPLES) min = WAVETABLE_PARAM_SAMPLES - 1;
-        paramMin[i] = min;
-        paramVal[i] = d;
+        paramMin[i] = (int)min;
+        paramVal[i] = (int)d;
     }
     if (params == 1) {
         int idxMin = paramMin[0];
         if (!ready[idxMin] || !ready[idxMin + 1]) return false;
         float dt = frequency / sampleRate;
-        float f = paramVal[0] - paramMin[0];
+        float p1 = (float)(paramVal[0] - paramMin[0]);
         for (int i = 0; i < samples; i++) {
             float sample = phase * WAVETABLE_TIME_SAMPLES;
             float t = std::floor(sample);
             block[i] =
-                lerpArr(this->content + idxMin, t, sample - t) * f +
-                lerpArr(this->content + idxMin + 1, t, sample - t) * (1 - f);
+                lerpArr(this->content + idxMin, (int)t, sample - t) * p1 +
+                lerpArr(this->content + idxMin + 1, (int)t, sample - t) * (1 - p1);
             phase += dt;
             if (phase > 1) phase -= 1;
         }
@@ -219,13 +220,13 @@ bool HyperWaveTable::fillBlockConst(float* block, int sz, float* parameters,
         }
 #define SQRDIST(x, y) (x) * (x) + (y) * (y)
 #define SQRTDIST(x, y) std::sqrt((x) * (x) + (y) * (y))
-        float f0 =
+        float f0 = (float)
             SQRDIST(paramVal[1] - paramMin[1], paramVal[0] - paramMin[0]);
-        float f1 =
+        float f1 = (float)
             SQRDIST(paramVal[1] - paramMin[1], 1 - paramVal[0] + paramMin[0]);
-        float f2 =
+        float f2 = (float)
             SQRDIST(1 - paramVal[1] + paramMin[1], paramVal[0] - paramMin[0]);
-        float f3 = SQRDIST(1 - paramVal[1] + paramMin[1],
+        float f3 = (float)SQRDIST(1 - paramVal[1] + paramMin[1],
                            1 - paramVal[0] + paramMin[0]);
         float sum = f0 + f1 + f2 + f3;
         f0 /= sum;
@@ -237,12 +238,12 @@ bool HyperWaveTable::fillBlockConst(float* block, int sz, float* parameters,
             float sample = phase * WAVETABLE_TIME_SAMPLES;
             float t = std::floor(sample);
             block[i] =
-                lerpArr(this->content + idxMin, t, sample - t) * f0 +
-                lerpArr(this->content + idxMin + 1, t, sample - t) * f1 +
-                lerpArr(this->content + idxMin + WAVETABLE_PARAM_SAMPLES, t,
+                lerpArr(this->content + idxMin, (int)t, sample - t) * f0 +
+                lerpArr(this->content + idxMin + 1, (int)t, sample - t) * f1 +
+                lerpArr(this->content + idxMin + WAVETABLE_PARAM_SAMPLES, (int)t,
                         sample - t) *
                     f2 +
-                lerpArr(this->content + idxMin + WAVETABLE_PARAM_SAMPLES + 1, t,
+                lerpArr(this->content + idxMin + WAVETABLE_PARAM_SAMPLES + 1, (int)t,
                         sample - t) *
                     f3;
             phase += dt;
@@ -270,8 +271,6 @@ bool HyperWaveTable::fillBlockConst(float* block, int sz, float* parameters,
     return true;
 }
 
-void HyperWaveTable::fillBlock(float* block, int sz, float* parameters,
-                               float& phase, const float frequency) {}
 
 std::ostream& operator<<(std::ostream& stream, const struct HyperToken& tok) {
     stream << "Tok type: ";
@@ -531,6 +530,7 @@ void HyperToken::printGLSL(std::ostringstream& str) const {
             str << "(";
             a->printGLSL(str);
             str << ")";
+            break;
         default:
             break;
     }

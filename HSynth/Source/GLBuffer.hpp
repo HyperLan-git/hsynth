@@ -3,7 +3,7 @@
 #include "JuceHeader.h"
 #include "OpenGLException.hpp"
 
-static void unbindBuffer(GLenum type) { juce::gl::glBindBuffer(type, 0); }
+//static void unbindBuffer(GLenum type) { juce::gl::glBindBuffer(type, 0); }
 
 class GLBuffer {
    public:

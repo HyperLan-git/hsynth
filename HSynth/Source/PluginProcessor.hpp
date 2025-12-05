@@ -3,6 +3,7 @@
 #include <array>
 #include <cstring>
 #include <memory>
+#include <chrono>
 #include <random>
 
 #include "ComputeShader.hpp"
@@ -82,7 +83,11 @@ class HSynthAudioProcessor : public juce::AudioProcessor {
     }
 
     inline const WTFrame& getCurrentFrame() const {
+#ifdef _WIN64
+        return data[(int)(b->get() * 255) * 256 + (int)(a->get() * 255)];
+#else
         return data[(int)(b->get() * 255)][(int)(a->get() * 255)];
+#endif
     }
 
     inline juce::OpenGLContext& getContext() { return context; }
@@ -94,8 +99,12 @@ class HSynthAudioProcessor : public juce::AudioProcessor {
     std::string errorStr;
 
     struct HyperToken* formulaTree = nullptr;
-
-    float data[256][256][2048];
+    // XXX Dumb bug with msvc which causes it to crap itself when allocating 500MB on the stack (I wonder why xd)
+#ifdef _WIN64
+    WTFrame* data = new WTFrame[256 * 256];
+#else
+    float data[256][256][2048] = { 0 };
+#endif
 
     juce::OpenGLContext context;
 
@@ -115,6 +124,9 @@ class HSynthAudioProcessor : public juce::AudioProcessor {
 
     std::array<struct Voice, MAX_VOICES> voices;
     int freeVoices = MAX_VOICES;
+
+    std::random_device randomDev;
+    std::uniform_real_distribution<float> randFloat = std::uniform_real_distribution<float>(0, 10);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(HSynthAudioProcessor)
 };
