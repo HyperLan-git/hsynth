@@ -3,6 +3,9 @@
 <JUCERPROJECT id="LXKMMQ" name="HSynth" projectType="audioplug" useAppConfig="0"
               addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" pluginCharacteristicsValue="pluginIsSynth,pluginWantsMidiIn">
   <MAINGROUP id="jwmmb6" name="HSynth">
+    <GROUP id="{E3A2B96F-A418-A4CC-9E5C-FAE86E92B676}" name="Resources">
+      <FILE id="KGeo8q" name="bg.frag" compile="0" resource="1" file="Resource/bg.frag"/>
+    </GROUP>
     <GROUP id="{11D113A9-A249-0F97-C249-F795077D1B65}" name="Source">
       <FILE id="aFH3uR" name="OpenGLException.hpp" compile="0" resource="0"
             file="Source/OpenGLException.hpp"/>
@@ -38,7 +41,7 @@
     </GROUP>
   </MAINGROUP>
   <MODULES>
-    <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_audio_devices" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_audio_formats" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_audio_plugin_client" showAllCode="1" useLocalCopy="0"
@@ -62,7 +65,7 @@
         <CONFIGURATION isDebug="0" name="Release" targetName="HSynth"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_audio_basics" path="C:/Users/rekik/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="../../JUCE/modules/juce_audio_basics"/>
         <MODULEPATH id="juce_audio_devices" path="../../JUCE/modules"/>
         <MODULEPATH id="juce_audio_formats" path="../../JUCE/modules"/>
         <MODULEPATH id="juce_audio_plugin_client" path="../../JUCE/modules"/>
