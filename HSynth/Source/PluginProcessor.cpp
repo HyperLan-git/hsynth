@@ -3,18 +3,10 @@
 #include "PluginEditor.hpp"
 
 HSynthAudioProcessor::HSynthAudioProcessor()
-#ifndef JucePlugin_PreferredChannelConfigurations
     : AudioProcessor(
           BusesProperties()
-#if !JucePlugin_IsMidiEffect
-#if !JucePlugin_IsSynth
               .withInput("Input", juce::AudioChannelSet::stereo(), true)
-#endif
-              .withOutput("Output", juce::AudioChannelSet::stereo(), true)
-#endif
-              )
-#endif
-      ,
+              .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       hzShift(new juce::AudioParameterFloat({"hz_shift", 1}, "Frequency shift",
                                             -10000, 10000, 0)),
       stShift(new juce::AudioParameterFloat({"st_shift", 1}, "Pitch shift", -48,
@@ -57,9 +49,6 @@ HSynthAudioProcessor::HSynthAudioProcessor()
 
     this->context.setOpenGLVersionRequired(
         juce::OpenGLContext::OpenGLVersion::openGL4_3);
-#ifdef _WIN64
-    std::memset(data, 0, sizeof(WTFrame) * 256 * 256);
-#endif
 }
 
 HSynthAudioProcessor::~HSynthAudioProcessor() {
@@ -71,21 +60,9 @@ const juce::String HSynthAudioProcessor::getName() const {
     return JucePlugin_Name;
 }
 
-bool HSynthAudioProcessor::acceptsMidi() const {
-#if JucePlugin_WantsMidiInput
-    return true;
-#else
-    return false;
-#endif
-}
+bool HSynthAudioProcessor::acceptsMidi() const { return true; }
 
-bool HSynthAudioProcessor::producesMidi() const {
-#if JucePlugin_ProducesMidiOutput
-    return true;
-#else
-    return false;
-#endif
-}
+bool HSynthAudioProcessor::producesMidi() const { return false; }
 
 bool HSynthAudioProcessor::isMidiEffect() const {
 #if JucePlugin_IsMidiEffect
@@ -95,7 +72,7 @@ bool HSynthAudioProcessor::isMidiEffect() const {
 #endif
 }
 
-double HSynthAudioProcessor::getTailLengthSeconds() const { return 0.0; }
+double HSynthAudioProcessor::getTailLengthSeconds() const { return 2.0; }
 
 int HSynthAudioProcessor::getNumPrograms() { return 1; }
 
@@ -106,7 +83,7 @@ void HSynthAudioProcessor::setCurrentProgram(int index) { (void)index; }
 
 const juce::String HSynthAudioProcessor::getProgramName(int index) {
     (void)index;
-    return {};
+    return "None";
 }
 
 void HSynthAudioProcessor::changeProgramName(int index,
@@ -117,7 +94,7 @@ void HSynthAudioProcessor::changeProgramName(int index,
 
 void HSynthAudioProcessor::prepareToPlay(double sampleRate,
                                          int samplesPerBlock) {
-    (void)sampleRate;
+    this->prevValidSampleRate = sampleRate;
     (void)samplesPerBlock;
 }
 
@@ -161,12 +138,11 @@ double getFreq(int midiPitch) {
     return (double)(result * std::pow(SEMITONE_PITCH, midiPitch - 69) * 440);
 }
 
-const float denNeg = (float)std::exp(-1) - 1;
-const float denPos = (float)std::exp(1) - 1;
-
-float interpolExp(int samplesSinceStart, int sampleDuration, float start,
-                  float end, bool negCurve = true) {
+constexpr float interpolExp(int samplesSinceStart, int sampleDuration,
+                            float start, float end, bool negCurve = true) {
     if (samplesSinceStart > sampleDuration) return end;
+    constexpr float denNeg = std::exp(-1) - 1;
+    constexpr float denPos = std::exp(1) - 1;
     if (!negCurve)
         return start +
                (end - start) *
@@ -179,7 +155,6 @@ float interpolExp(int samplesSinceStart, int sampleDuration, float start,
 }
 
 float sigmoid(float x) { return 1 / (1.f + std::exp(-x)); }
-int prevValidSampleRate = 0;
 void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                                         juce::MidiBuffer& midiMessages) {
     juce::ScopedNoDenormals noDenormals;
@@ -222,8 +197,8 @@ void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                                                   : 1.f * i / voicesPerNote;
                 for (Voice& v : voices) {
                     if (v.velocity) continue;
-                    v.note = (uint8_t) msg.getNoteNumber();
-                    v.velocity = (uint8_t) msg.getVelocity();
+                    v.note = msg.getNoteNumber();
+                    v.velocity = msg.getVelocity();
                     v.timeStart = e.samplePosition;
                     v.detune = voicesPerNote == 1 ? 0 : detuneVal;
                     v.pan = voicesPerNote == 1 ? 0 : panVal;
@@ -270,10 +245,7 @@ void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
     prevPhase = phase;
     prevDetune = detune;
-
-    float* leftData = buffer.getWritePointer(0);
-    float* rightData = buffer.getWritePointer(1);
-    int sampleRate = (int)this->getSampleRate();
+    double sampleRate = this->getSampleRate();
     if (sampleRate == 0) sampleRate = prevValidSampleRate;
     const int sampleAttack = (*attack) * sampleRate;
     const int sampleDecay = (*decay) * sampleRate;
@@ -282,65 +254,73 @@ void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
     const float freqShift = *hzShift;
 
-    if (sampleRate == 0 || freeVoices == MAX_VOICES) return;
-    prevValidSampleRate = sampleRate;
+    if (sampleRate == 0 || freeVoices == MAX_VOICES) {
+        buffer.clear(0, samples);
+        return;
+    }
 
     auto& frame = getCurrentFrame();
     const float freqShiftMul = std::pow(SEMITONE_PITCH, pitchShift);
     const bool doLimit = *limiter;
-    for (Voice& v : voices) {
-        if (!v.velocity) continue;
-        if (v.timeRelease != INT64_MIN && v.timeRelease < -sampleRel) {
-            v.velocity = 0;
-            v.timeRelease = INT64_MIN;
-            freeVoices++;
-            continue;
-        }
-        const double freq = v.freq + freqShift;
-        const double dt = freqShiftMul * freq / sampleRate;
-        const float leftAmp =
-            (std::cos(v.pan * M_PI / 2) + std::sin(v.pan * M_PI / 2)) *
-            std::sqrt(2) / 2;
-        const float rightAmp =
-            (std::cos(v.pan * M_PI / 2) - std::sin(v.pan * M_PI / 2)) *
-            std::sqrt(2) / 2;
-        for (int i = v.timeStart > 0 ? v.timeStart : 0; i < samples; i++) {
-            const float idx = v.phase * 2047;
-            const unsigned int fl = (unsigned int)std::floor(idx);
-            const float dif = idx - fl;
-            float amplitude = sus;
-            if (v.timeRelease != INT64_MIN && i > v.timeRelease)
-                amplitude = interpolExp((int)(i - v.timeRelease), sampleRel,
-                                        v.releaseAmp, 0, false);
-            else if (v.timeStart > -sampleAttack)
-                amplitude = interpolExp((int)(i - v.timeStart), sampleAttack, 0,
-                                        1, true);
-            else if (v.timeStart > -sampleAttack - sampleDecay)
-                amplitude = interpolExp((int)(i - v.timeStart - sampleAttack),
-                                        sampleDecay, 1, sus, true);
-
-            if (i == v.timeRelease) v.releaseAmp = amplitude;
-
-            if (fl >= 2047) {
-                const float val = amplitude * v.amp * frame[2047];
-                if (std::isfinite(val)) {
-                    leftData[i] += leftAmp * val;
-                    rightData[i] += rightAmp * val;
-                }
-            } else {
-                const float val = amplitude * v.amp *
-                                  ((1 - dif) * frame[fl] + dif * frame[fl + 1]);
-                if (std::isfinite(val)) {
-                    leftData[i] += leftAmp * val;
-                    rightData[i] += rightAmp * val;
-                }
+    {
+        float* leftData = buffer.getWritePointer(0);
+        float* rightData = buffer.getWritePointer(1);
+        for (Voice& v : voices) {
+            if (!v.velocity) continue;
+            if (v.timeRelease != INT64_MIN && v.timeRelease < -sampleRel) {
+                v.velocity = 0;
+                v.timeRelease = INT64_MIN;
+                freeVoices++;
+                continue;
             }
-            v.phase += dt;
-            if (v.phase > 1) v.phase -= 1;
-            if (v.phase < 0) v.phase += 1;
+            const double freq = v.freq + freqShift;
+            const double dt = freqShiftMul * freq / sampleRate;
+            const float leftAmp =
+                (std::cos(v.pan * M_PI / 2) + std::sin(v.pan * M_PI / 2)) *
+                std::sqrt(2) / 2;
+            const float rightAmp =
+                (std::cos(v.pan * M_PI / 2) - std::sin(v.pan * M_PI / 2)) *
+                std::sqrt(2) / 2;
+            for (int i = v.timeStart > 0 ? v.timeStart : 0; i < samples; i++) {
+                const float idx = v.phase * 2047;
+                const unsigned int fl = (unsigned int)std::floor(idx);
+                const float dif = idx - fl;
+                float amplitude = sus;
+                if (v.timeRelease != INT64_MIN && i > v.timeRelease)
+                    amplitude = interpolExp((int)(i - v.timeRelease), sampleRel,
+                                            v.releaseAmp, 0, false);
+                else if (v.timeStart > -sampleAttack)
+                    amplitude = interpolExp((int)(i - v.timeStart),
+                                            sampleAttack, 0, 1, true);
+                else if (v.timeStart > -sampleAttack - sampleDecay)
+                    amplitude =
+                        interpolExp((int)(i - v.timeStart - sampleAttack),
+                                    sampleDecay, 1, sus, true);
+
+                if (i == v.timeRelease) v.releaseAmp = amplitude;
+
+                if (fl >= 2047) {
+                    const float val = amplitude * v.amp * frame[2047];
+                    if (std::isfinite(val)) {
+                        leftData[i] += leftAmp * val;
+                        rightData[i] += rightAmp * val;
+                    }
+                } else {
+                    const float val =
+                        amplitude * v.amp *
+                        ((1 - dif) * frame[fl] + dif * frame[fl + 1]);
+                    if (std::isfinite(val)) {
+                        leftData[i] += leftAmp * val;
+                        rightData[i] += rightAmp * val;
+                    }
+                }
+                v.phase += dt;
+                if (v.phase > 1) v.phase -= 1;
+                if (v.phase < 0) v.phase += 1;
+            }
+            v.timeStart -= (int64_t)samples;
+            if (v.timeRelease != INT64_MIN) v.timeRelease -= (int64_t)samples;
         }
-        v.timeStart -= (int64_t)samples;
-        if (v.timeRelease != INT64_MIN) v.timeRelease -= (int64_t)samples;
     }
 
     constexpr float GLOBAL_VOLUME = .1f;
@@ -393,11 +373,12 @@ void HSynthAudioProcessor::computeBuffer(const std::string& formulaStr) {
 
     while (!this->context.makeActive() && this->context.isAttached());
 
-    if (formulaStr != this->formula) {
-        std::ostringstream str;
-        this->formulaTree->printGLSL(str);
-        std::cout << str.str();
-        this->formula = str.str();
+    std::ostringstream str;
+    this->formulaTree->printGLSL(str);
+    std::string newFormula = str.str();
+    if (newFormula != this->formula) {
+        std::cout << newFormula << "\n";
+        this->formula = newFormula;
         // This is horrendous but it must be fast
         std::size_t sz = sizeof(SHADERCODE) + 3 + this->formula.size();
         char* code = new char[sz];
@@ -471,17 +452,27 @@ bool HSynthAudioProcessor::hasEditor() const { return true; }
 juce::AudioProcessorEditor* HSynthAudioProcessor::createEditor() {
     auto* editor = new HSynthAudioProcessorEditor(*this);
     this->context.attachTo(*(editor));
+    this->context.setContinuousRepainting(true);
+    this->context.setSwapInterval(30);
     return editor;
 }
 
 void HSynthAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {
-    (void)destData;
+    juce::MemoryOutputStream stream(destData, true);
+    stream.writeInt64(this->formula.length());
+    stream.write(this->formula.c_str(), this->formula.length() + 1);
 }
 
 void HSynthAudioProcessor::setStateInformation(const void* state,
                                                int sizeInBytes) {
-    (void)state;
-    (void)sizeInBytes;
+    juce::MemoryInputStream stream(state, static_cast<size_t>(sizeInBytes),
+                                   false);
+    std::size_t len = stream.readInt64();
+    char* str = new char[len];
+    stream.read(str, len);
+    str[len - 1] = 0;
+    this->computeBuffer(std::string(str));
+    delete[] str;
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() {

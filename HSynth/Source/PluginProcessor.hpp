@@ -1,9 +1,9 @@
 #pragma once
 
 #include <array>
+#include <chrono>
 #include <cstring>
 #include <memory>
-#include <chrono>
 #include <random>
 
 #include "ComputeShader.hpp"
@@ -99,11 +99,12 @@ class HSynthAudioProcessor : public juce::AudioProcessor {
     std::string errorStr;
 
     struct HyperToken* formulaTree = nullptr;
-    // XXX Dumb bug with msvc which causes it to crap itself when allocating 500MB on the stack (I wonder why xd)
+    // XXX Dumb bug with msvc which causes it to crap itself when allocating
+    // 500MB on the stack (I wonder why xd)
 #ifdef _WIN64
     WTFrame* data = new WTFrame[256 * 256];
 #else
-    float data[256][256][2048] = { 0 };
+    float data[256][256][2048] = {0};
 #endif
 
     juce::OpenGLContext context;
@@ -126,7 +127,8 @@ class HSynthAudioProcessor : public juce::AudioProcessor {
     int freeVoices = MAX_VOICES;
 
     std::random_device randomDev;
-    std::uniform_real_distribution<float> randFloat = std::uniform_real_distribution<float>(0, 10);
+    std::uniform_real_distribution<float> randFloat =
+        std::uniform_real_distribution<float>(0, 1);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(HSynthAudioProcessor)
 };

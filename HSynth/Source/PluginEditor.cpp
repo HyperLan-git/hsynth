@@ -65,8 +65,15 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
     this->addAndMakeVisible(this->stShiftKnob);
     this->addAndMakeVisible(this->hzShiftKnob);
 
+    const char* shaderCode = BinaryData::bg_frag;
+    for (int i = 0, lines = 0;
+         i < BinaryData::bg_fragSize && lines < BGSHADER_HEADER_LINES;
+         i++, shaderCode++) {
+        if (*shaderCode == '\n') lines++;
+    }
+
     shader =
-        std::make_unique<juce::OpenGLGraphicsContextCustomShader>(animShader);
+        std::make_unique<juce::OpenGLGraphicsContextCustomShader>(shaderCode);
     timer.startTimer(1000 / 60);
 }
 
@@ -97,7 +104,7 @@ void HSynthAudioProcessorEditor::paint(juce::Graphics& g) {
             std::chrono::system_clock::now();
         std::chrono::duration<float> elapsed_seconds = time - start;
         shader->getProgram(g.getInternalContext())->use();
-        timeUniform->set(std::fmod(elapsed_seconds.count(), 30.0f));
+        timeUniform->set(std::fmod(elapsed_seconds.count(), 100.0f));
         shader->fillRect(g.getInternalContext(), getLocalBounds());
     }
 
@@ -110,7 +117,7 @@ void HSynthAudioProcessorEditor::paint(juce::Graphics& g) {
     if (drawGraph) {
         drawGraph = false;
         graph = juce::Path();
-        constexpr int maxI = 300;
+        constexpr int maxI = 1200;
         const WTFrame& frame = audioProcessor.getCurrentFrame();
 
         graph.preallocateSpace(3 * maxI);
@@ -125,13 +132,14 @@ void HSynthAudioProcessorEditor::paint(juce::Graphics& g) {
             graph.lineTo(x, y);
         }
     }
+    // Ignore the fact that it might get slow in debug mode
     g.strokePath(graph, juce::PathStrokeType(2));
 }
 
 void HSynthAudioProcessorEditor::resized() {
-    this->title.setBounds({100, 0, 400, 25});
-    this->formula.setBounds({100, 25, 400, 50});
-    this->error.setBounds({100, 75, 400, 25});
+    this->title.setBounds({50, 0, 400, 25});
+    this->formula.setBounds({50, 25, 400, 50});
+    this->error.setBounds({50, 75, 400, 25});
     this->aKnob.setBounds({500, 0, 100, 100});
     this->bKnob.setBounds({600, 0, 100, 100});
     this->attackKnob.setBounds({700, 0, 100, 100});
