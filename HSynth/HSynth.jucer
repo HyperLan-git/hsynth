@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="LXKMMQ" name="HSynth" projectType="audioplug" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" pluginCharacteristicsValue="pluginIsSynth,pluginProducesMidiOut,pluginWantsMidiIn"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" pluginCharacteristicsValue="pluginIsSynth,pluginWantsMidiIn"
               pluginVST3Category="Fx" userNotes="A synth that computes wavetables from mathematical formulas using the GPU"
               pluginFormats="buildAU,buildStandalone,buildVST3" version="1.0.0">
   <MAINGROUP id="jwmmb6" name="HSynth">
@@ -29,8 +29,6 @@
             file="Source/HyperWaveTable.cpp"/>
       <FILE id="FBs5Ag" name="HyperWaveTable.hpp" compile="0" resource="0"
             file="Source/HyperWaveTable.hpp"/>
-      <FILE id="U9Ex0K" name="ProcessingComponent.hpp" compile="0" resource="0"
-            file="Source/ProcessingComponent.hpp"/>
       <FILE id="ej89wB" name="ExtInput.hpp" compile="0" resource="0" file="Source/ExtInput.hpp"/>
       <FILE id="SQuITD" name="PluginProcessor.hpp" compile="0" resource="0"
             file="Source/PluginProcessor.hpp"/>
@@ -43,7 +41,7 @@
     </GROUP>
   </MAINGROUP>
   <MODULES>
-    <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_audio_devices" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_audio_formats" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_audio_plugin_client" showAllCode="1" useLocalCopy="0"
@@ -88,19 +86,19 @@
         <CONFIGURATION isDebug="0" name="Release" targetName="HSynth"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_audio_basics" path="../../JUCE/modules"/>
-        <MODULEPATH id="juce_audio_devices" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="..\..\..\..\..\Documents\JUCE\modules"/>
+        <MODULEPATH id="juce_audio_devices" path="..\..\..\..\..\Documents\JUCE\modules"/>
         <MODULEPATH id="juce_audio_formats" path="../../JUCE/modules"/>
-        <MODULEPATH id="juce_audio_plugin_client" path="../../JUCE/modules"/>
-        <MODULEPATH id="juce_audio_processors" path="../../JUCE/modules"/>
-        <MODULEPATH id="juce_audio_utils" path="../../JUCE/modules"/>
-        <MODULEPATH id="juce_core" path="../../JUCE/modules"/>
-        <MODULEPATH id="juce_data_structures" path="../../JUCE/modules"/>
-        <MODULEPATH id="juce_events" path="../../JUCE/modules"/>
-        <MODULEPATH id="juce_graphics" path="../../JUCE/modules"/>
-        <MODULEPATH id="juce_gui_basics" path="../../JUCE/modules"/>
-        <MODULEPATH id="juce_gui_extra" path="../../JUCE/modules"/>
-        <MODULEPATH id="juce_opengl" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="..\..\..\..\..\Documents\JUCE\modules"/>
+        <MODULEPATH id="juce_audio_processors" path="..\..\..\..\..\Documents\JUCE\modules"/>
+        <MODULEPATH id="juce_audio_utils" path="..\..\..\..\..\Documents\JUCE\modules"/>
+        <MODULEPATH id="juce_core" path="..\..\..\..\..\Documents\JUCE\modules"/>
+        <MODULEPATH id="juce_data_structures" path="..\..\..\..\..\Documents\JUCE\modules"/>
+        <MODULEPATH id="juce_events" path="..\..\..\..\..\Documents\JUCE\modules"/>
+        <MODULEPATH id="juce_graphics" path="..\..\..\..\..\Documents\JUCE\modules"/>
+        <MODULEPATH id="juce_gui_basics" path="..\..\..\..\..\Documents\JUCE\modules"/>
+        <MODULEPATH id="juce_gui_extra" path="..\..\..\..\..\Documents\JUCE\modules"/>
+        <MODULEPATH id="juce_opengl" path="..\..\..\..\..\Documents\JUCE\modules"/>
       </MODULEPATHS>
     </VS2022>
   </EXPORTFORMATS>

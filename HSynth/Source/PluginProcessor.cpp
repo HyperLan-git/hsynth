@@ -44,15 +44,17 @@ HSynthAudioProcessor::HSynthAudioProcessor()
     addParameter(detune);
     addParameter(phase);
     addParameter(phaseRandomness);
+    addParameter(limiter);
 
-    std::memset(data, 0, sizeof(data));
+    std::memset(data, 0, 256*256*sizeof(WTFrame));
 
-    this->context.setOpenGLVersionRequired(
+    this->context = std::make_unique<juce::OpenGLContext>();
+    this->context->setOpenGLVersionRequired(
         juce::OpenGLContext::OpenGLVersion::openGL4_3);
 }
 
 HSynthAudioProcessor::~HSynthAudioProcessor() {
-    this->context.deactivateCurrentContext();
+    this->context->deactivateCurrentContext();
     delete formulaTree;
 }
 
@@ -141,8 +143,8 @@ double getFreq(int midiPitch) {
 constexpr float interpolExp(int samplesSinceStart, int sampleDuration,
                             float start, float end, bool negCurve = true) {
     if (samplesSinceStart > sampleDuration) return end;
-    constexpr float denNeg = std::exp(-1) - 1;
-    constexpr float denPos = std::exp(1) - 1;
+    constexpr float denNeg = -0.6321205588285577f; // 1/E - 1
+    constexpr float denPos = 1.718281828459045f; // E - 1
     if (!negCurve)
         return start +
                (end - start) *
@@ -348,8 +350,8 @@ constexpr char SHADERCODE[] =
     "float mod(float a, float b) { return a - b * floor(a / b); }"
 
     "void main() {"
-    "float a = gl_GlobalInvocationID.y / 256.0f;"
-    "float b = gl_GlobalInvocationID.x / 256.0f;"
+    "float a = gl_GlobalInvocationID.y / 255.0f;"
+    "float b = gl_GlobalInvocationID.x / 255.0f;"
     "float t = gl_GlobalInvocationID.z / "
     "float(gl_NumWorkGroups.z * 1024);"
     "float P = 3.14159265359f;"
@@ -359,6 +361,57 @@ constexpr char SHADERCODE[] =
     "data[gl_GlobalInvocationID.z + gl_GlobalInvocationID.y * "
     "gl_NumWorkGroups.z * 1024 + gl_GlobalInvocationID.x * "
     "gl_NumWorkGroups.y * gl_NumWorkGroups.z * 1024] = float(";
+
+void HSynthAudioProcessor::resetShader() {
+    if (formula.empty()) {
+        shader.reset();
+        return;
+    }
+
+    // This is horrendous but it must be fast
+    std::size_t sz = sizeof(SHADERCODE) + 3 + this->formula.size();
+    char* code = new char[sz];
+#pragma warning(disable : 6386)
+    std::memcpy(code, SHADERCODE, sizeof(SHADERCODE));
+    std::memcpy(code + sizeof(SHADERCODE) - 1, this->formula.c_str(),
+        this->formula.size());
+    std::memcpy(code + sz - 4, ");}", 4);
+    std::cout << code << "\n";
+    try {
+        this->shader = std::make_unique<ComputeShader>(
+            code, std::initializer_list<GLsizeiptr>{256 * 256 * 2048 *
+            sizeof(float)});
+    }
+    catch (const OpenGLException& e) {
+        if (e.getErrorCode() == juce::gl::GL_OUT_OF_MEMORY) try {
+            this->shader = std::make_unique<ComputeShader>(
+                code, std::initializer_list<GLsizeiptr>{
+                128 * 256 * 2048 * sizeof(float)});
+        }
+        catch (const std::runtime_error& e) {
+            this->shader.reset();
+            delete[] code;
+            std::cerr << e.what() << std::endl;
+            errorStr = e.what();
+            return;
+        }
+        else {
+            this->shader.reset();
+            delete[] code;
+            std::cerr << e.what() << std::endl;
+            errorStr = e.what();
+            return;
+        }
+    }
+    catch (const std::runtime_error& e) {
+        this->shader.reset();
+        delete[] code;
+        std::cerr << e.what() << std::endl;
+        errorStr = e.what();
+        return;
+    }
+    delete[] code;
+}
 
 void HSynthAudioProcessor::computeBuffer(const std::string& formulaStr) {
     delete formulaTree;
@@ -371,76 +424,55 @@ void HSynthAudioProcessor::computeBuffer(const std::string& formulaStr) {
         return;
     }
 
-    while (!this->context.makeActive() && this->context.isAttached());
-
     std::ostringstream str;
     this->formulaTree->printGLSL(str);
     std::string newFormula = str.str();
+
+    int i = 0;
+
+    juce::Logger::writeToLog("Getting context");
+    while (!this->context->makeActive() && this->context->isAttached()) {
+        std::this_thread::yield();
+        if (++i > 500) {
+            shader.reset();
+            return;
+        }
+    }
+    juce::Logger::writeToLog("Context got");
+
     if (newFormula != this->formula) {
         std::cout << newFormula << "\n";
         this->formula = newFormula;
-        // This is horrendous but it must be fast
-        std::size_t sz = sizeof(SHADERCODE) + 3 + this->formula.size();
-        char* code = new char[sz];
-#pragma warning(disable : 6386)
-        std::memcpy(code, SHADERCODE, sizeof(SHADERCODE));
-        std::memcpy(code + sizeof(SHADERCODE) - 1, this->formula.c_str(),
-                    this->formula.size());
-        std::memcpy(code + sz - 4, ");}", 4);
-        std::cout << code << "\n";
-        try {
-            this->shader = std::make_unique<ComputeShader>(
-                code, std::initializer_list<GLsizeiptr>{256 * 256 * 2048 *
-                                                        sizeof(float)});
-        } catch (const OpenGLException& e) {
-            if (e.getErrorCode() == juce::gl::GL_OUT_OF_MEMORY) try {
-                    this->shader = std::make_unique<ComputeShader>(
-                        code, std::initializer_list<GLsizeiptr>{
-                                  128 * 256 * 2048 * sizeof(float)});
-                } catch (const std::runtime_error& e) {
-                    delete[] code;
-                    std::cerr << e.what() << std::endl;
-                    errorStr = e.what();
-                    return;
-                }
-            else {
-                delete[] code;
-                std::cerr << e.what() << std::endl;
-                errorStr = e.what();
-                return;
-            }
-        } catch (const std::runtime_error& e) {
-            delete[] code;
-            std::cerr << e.what() << std::endl;
-            errorStr = e.what();
-            return;
-        }
-        delete[] code;
+        resetShader();
     }
 
     if (!shader) return;
 
-    auto& buf = shader->getBuffer(0);
-    bool passes = buf.getSize() < 256 * 256 * 2048 * sizeof(float);
-    shader->run(passes ? 128 : 256, 256, 2);
-    void* ptr = buf.mapToPtr(buf.getSize());
+    void* ptr = NULL;
+    GLBuffer &buf = shader->getBuffer(0);
     try {
+        bool passes = buf.getSize() < 256 * 256 * 2048 * sizeof(float);
+        shader->run(passes ? 128 : 256, 256, 2);
+        juce::Logger::writeToLog("Mapping buffer");
+        ptr = buf.mapToPtr(buf.getSize());
         OPENGL_ERROR_HANDLE("Error when mapping compute buffer !");
     } catch (const OpenGLException& e) {
-        std::cerr << e.what() << std::endl;
+        juce::Logger::outputDebugString(e.what());
         return;
     }
     if (!ptr) return;
     // TODO make that a for loop maybe and maybe make the sizes configurable
 
     std::memcpy(data, ptr, buf.getSize());
+    juce::Logger::writeToLog("Unmapping buffer");
     if (!buf.unMap()) {
-        std::cerr << "Memory corruption!\n";
+        juce::Logger::outputDebugString("Memory corruption!\n");
     }
+    juce::Logger::writeToLog("Unmapped buffer");
     // TODO normalize every frame
     if (*limiter) {
         float* dat = (float*)data;
-        for (int i = 0; i < sizeof(data) / sizeof(float); i++) {
+        for (int i = 0; i < 256 * 256 * 2048; i++) {
             if (dat[i] > 1) dat[i] = 1;
             if (dat[i] < -1) dat[i] = -1;
         }
@@ -451,9 +483,14 @@ bool HSynthAudioProcessor::hasEditor() const { return true; }
 
 juce::AudioProcessorEditor* HSynthAudioProcessor::createEditor() {
     auto* editor = new HSynthAudioProcessorEditor(*this);
-    this->context.attachTo(*(editor));
-    this->context.setContinuousRepainting(true);
-    this->context.setSwapInterval(30);
+    this->context->detach();
+    this->context = std::make_unique<juce::OpenGLContext>();
+    this->context->setOpenGLVersionRequired(
+        juce::OpenGLContext::OpenGLVersion::openGL4_3);
+    this->context->attachTo(*(editor));
+    this->context->setContinuousRepainting(true);
+    this->context->setSwapInterval(30);
+    this->resetShader();
     return editor;
 }
 
@@ -463,15 +500,25 @@ void HSynthAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {
     stream.write(this->formula.c_str(), this->formula.length() + 1);
 }
 
+bool formulaValid(const std::string& str)
+{
+    return find_if(str.begin(), str.end(),
+        [](char c) { return !std::isprint(c); }) == str.end();
+}
+
+//TODO add checksum
 void HSynthAudioProcessor::setStateInformation(const void* state,
                                                int sizeInBytes) {
     juce::MemoryInputStream stream(state, static_cast<size_t>(sizeInBytes),
                                    false);
     std::size_t len = stream.readInt64();
+    if (len <= 0) return;
     char* str = new char[len];
     stream.read(str, len);
     str[len - 1] = 0;
-    this->computeBuffer(std::string(str));
+    std::string formula(str);
+    if(formulaValid(formula))
+        this->computeBuffer(formula);
     delete[] str;
 }
 

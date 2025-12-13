@@ -19,7 +19,8 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
       phaseRandKnob(p.getPhaseRandomnessParam()),
       stShiftKnob(p.getStShiftParam()),
       hzShiftKnob(p.getHzShiftParam()),
-      timer(*this) {
+      timer(*this),
+      limiterListener(p.getLimiterParam(), &this->limiterEnabled) {
     setSize(900, 700);
     this->error.setColour(juce::Label::textColourId, juce::Colours::red);
     this->formula.setFont(juce::FontOptions(20.0f));
@@ -28,7 +29,7 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
     this->formula.setMultiLine(true);
     this->title.setText("Formula : ",
                         juce::NotificationType::sendNotificationAsync);
-    this->formula.setTextToShowWhenEmpty("Formula example : sin(p)",
+    this->formula.setTextToShowWhenEmpty("sin(p)",
                                          juce::Colours::grey);
 
     this->formula.onReturnKey = this->formula.onFocusLost = [=] {
@@ -38,16 +39,17 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
                 (void)ctx;
                 juce::Logger::writeToLog("Compute buffer");
                 this->audioProcessor.computeBuffer(formula);
-                this->error.setText(
-                    this->audioProcessor.getError(),
-                    juce::NotificationType::sendNotificationAsync);
                 juce::Logger::writeToLog("Redraw graph");
                 redrawGraph();
             },
-            false);
+            true);
+        this->setErrorTextFromAudioProcessor();
     };
     this->setWantsKeyboardFocus(true);
     this->formula.onEscapeKey = [=] { this->grabKeyboardFocus(); };
+
+    this->limiterLabel.setText("Limiter", juce::NotificationType::sendNotificationAsync);
+    this->limiterLabel.setColour(juce::Label::backgroundColourId, juce::Colours::black.withAlpha(0.2f));
 
     this->addAndMakeVisible(this->title);
     this->addAndMakeVisible(this->formula);
@@ -64,6 +66,8 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
     this->addAndMakeVisible(this->phaseRandKnob);
     this->addAndMakeVisible(this->stShiftKnob);
     this->addAndMakeVisible(this->hzShiftKnob);
+    this->addAndMakeVisible(this->limiterLabel);
+    this->addAndMakeVisible(this->limiterEnabled);
 
     const char* shaderCode = BinaryData::bg_frag;
     for (int i = 0, lines = 0;
@@ -74,13 +78,14 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
 
     shader =
         std::make_unique<juce::OpenGLGraphicsContextCustomShader>(shaderCode);
-    timer.startTimer(1000 / 60);
+    timer.startTimer(1000 / 30);
 }
 
 HSynthAudioProcessorEditor::~HSynthAudioProcessorEditor() {
+    this->formula.onReturnKey = this->formula.onFocusLost = std::function<void()>();
     shader.reset();
-    auto context = juce::OpenGLContext::getContextAttachedTo(*this);
-    if (context) context->detach();
+    this->audioProcessor.getContext().detach();
+    juce::Logger::outputDebugString("detach");
 }
 
 void HSynthAudioProcessorEditor::redrawGraph() {
@@ -88,6 +93,11 @@ void HSynthAudioProcessorEditor::redrawGraph() {
     juce::MessageManager::callAsync(
         [=]() { this->repaint({45, 95, 660, 710}); });
 }
+
+void HSynthAudioProcessorEditor::setErrorText(std::string text) {
+    this->error.setText(text, juce::NotificationType::sendNotificationAsync);
+}
+
 int frame = 0;
 void HSynthAudioProcessorEditor::paint(juce::Graphics& g) {
     g.fillAll(juce::Colours::black.withAlpha(0.99f));
@@ -152,6 +162,8 @@ void HSynthAudioProcessorEditor::resized() {
     this->phaseRandKnob.setBounds({800, 100, 100, 100});
     this->hzShiftKnob.setBounds({800, 200, 100, 100});
     this->stShiftKnob.setBounds({800, 300, 100, 100});
+    this->limiterLabel.setBounds({700, 600, 100, 25});
+    this->limiterEnabled.setBounds({760, 600, 25, 25});
 }
 
 PListener::PListener(juce::RangedAudioParameter* param,

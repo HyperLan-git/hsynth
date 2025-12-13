@@ -9,7 +9,7 @@
 namespace BinaryData
 {
     extern const char*   bg_frag;
-    const int            bg_fragSize = 3284;
+    const int            bg_fragSize = 3380;
 
     // Number of elements in the namedResourceList and originalFileNames arrays.
     const int namedResourceListSize = 1;

@@ -11,6 +11,9 @@ class GLBuffer {
                       void* data = nullptr,
                       GLenum type = juce::gl::GL_SHADER_STORAGE_BUFFER);
 
+    GLBuffer(const GLBuffer&) = delete;
+    GLBuffer(GLBuffer&&) = default;
+
     void bindBuffer(uint16_t idx);
 
     inline void unbind() { juce::gl::glBindBuffer(type, 0); }

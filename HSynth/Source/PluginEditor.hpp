@@ -27,6 +27,33 @@ class PListener : public juce::AudioProcessorParameter::Listener {
     HSynthAudioProcessorEditor* editor;
 };
 
+class BoolParamListener : public juce::Button::Listener, public juce::AudioProcessorParameter::Listener {
+   public:
+       BoolParamListener(juce::AudioParameterBool* param, juce::ToggleButton* button) : param(param), button(button) {
+           param->addListener(this);
+           button->addListener(this);
+       }
+
+       void buttonClicked(juce::Button* b) override {
+           param->setValueNotifyingHost(b->getToggleState() ? 1.f : 0.f);
+       }
+
+       void parameterValueChanged(int parameterIndex, float newValue) override {
+           button->setToggleState(newValue > 0.f, juce::NotificationType::sendNotificationAsync);
+       }
+
+       void parameterGestureChanged(int parameterIndex,
+           bool gestureIsStarting) override {}
+
+       ~BoolParamListener() {
+           param->removeListener(this);
+           button->removeListener(this);
+       }
+   private:
+    juce::AudioParameterBool* param;
+    juce::ToggleButton* button;
+};
+
 class RepaintTimer : public juce::Timer {
    public:
     RepaintTimer(juce::Component&);
@@ -50,10 +77,18 @@ class HSynthAudioProcessorEditor : public juce::AudioProcessorEditor {
     void resized() override;
     void redrawGraph();
 
+    void setErrorText(std::string text);
+
+    void setErrorTextFromAudioProcessor() {
+        setErrorText(audioProcessor.getError());
+    }
+
    private:
     HSynthAudioProcessor& audioProcessor;
 
     juce::ToggleButton limiterEnabled;
+    juce::Label limiterLabel;
+    BoolParamListener limiterListener;
 
     std::unique_ptr<juce::OpenGLGraphicsContextCustomShader> shader;
     std::optional<juce::OpenGLShaderProgram::Uniform> timeUniform;

@@ -82,6 +82,8 @@ class HSynthAudioProcessor : public juce::AudioProcessor {
         return phaseRandomness;
     }
 
+    inline juce::AudioParameterBool* getLimiterParam() { return limiter; }
+
     inline const WTFrame& getCurrentFrame() const {
 #ifdef _WIN64
         return data[(int)(b->get() * 255) * 256 + (int)(a->get() * 255)];
@@ -90,9 +92,11 @@ class HSynthAudioProcessor : public juce::AudioProcessor {
 #endif
     }
 
-    inline juce::OpenGLContext& getContext() { return context; }
+    inline juce::OpenGLContext& getContext() { return *context; }
 
    private:
+    void resetShader();
+
     std::string formula;
     std::unique_ptr<ComputeShader> shader;
 
@@ -107,7 +111,7 @@ class HSynthAudioProcessor : public juce::AudioProcessor {
     float data[256][256][2048] = {0};
 #endif
 
-    juce::OpenGLContext context;
+    std::unique_ptr<juce::OpenGLContext> context;
 
     juce::AudioParameterFloat *a, *b;
     juce::AudioParameterFloat *hzShift, *stShift, *phase;
