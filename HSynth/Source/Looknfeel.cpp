@@ -68,3 +68,46 @@ void Looknfeel::drawRotarySlider(juce::Graphics& g, int x, int y, int width,
     g.fillEllipse(thumbPoint.x - thumbWidth / 2, thumbPoint.y - thumbWidth / 2,
                   thumbWidth, thumbWidth);
 }
+
+void Looknfeel::fillTextEditorBackground(juce::Graphics& g, int width, int height, juce::TextEditor& editor) {
+    juce::Path path;
+    path.addRoundedRectangle(0, 0,
+        width, height,
+        cornerSize, cornerSize);
+    if (dynamic_cast<juce::AlertWindow*> (editor.getParentComponent()) != nullptr)
+    {
+        g.setColour(editor.findColour(juce::TextEditor::backgroundColourId));
+
+        g.fillPath(path);
+
+        g.setColour(editor.findColour(juce::TextEditor::outlineColourId));
+        g.strokePath(path, juce::PathStrokeType(1.0f));
+        //g.fillRect(0, 0, width, height);
+
+        //g.drawHorizontalLine(height - 1, 0.0f, static_cast<float> (width));
+    }
+    else
+    {
+        g.setColour(editor.findColour(juce::TextEditor::backgroundColourId));
+        g.fillPath(path);
+    }
+}
+void Looknfeel::drawTextEditorOutline(juce::Graphics& g, int width, int height, juce::TextEditor& editor) {
+    if (dynamic_cast<juce::AlertWindow*> (editor.getParentComponent()) != nullptr
+            || !editor.isEnabled())
+        return;
+    juce::Path path;
+    path.addRoundedRectangle(0, 0,
+        width, height,
+        cornerSize, cornerSize);
+    if (editor.hasKeyboardFocus(true) && !editor.isReadOnly())
+    {
+        g.setColour(editor.findColour(juce::TextEditor::focusedOutlineColourId));
+        g.strokePath(path, juce::PathStrokeType(2));
+    }
+    else
+    {
+        g.setColour(editor.findColour(juce::TextEditor::outlineColourId));
+        g.strokePath(path, juce::PathStrokeType(1));
+    }
+}

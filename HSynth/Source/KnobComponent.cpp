@@ -65,7 +65,7 @@ KnobComponent::KnobComponent(juce::RangedAudioParameter* param, double step)
 KnobComponent::~KnobComponent() { knob.setLookAndFeel(nullptr); }
 
 void KnobComponent::paint(juce::Graphics& g) {
-    g.fillAll(juce::Colours::black.withAlpha(0.2f));
+    g.fillAll(juce::Colours::black.withAlpha(0.4f));
 }
 
 double KnobComponent::getValue() const { return knob.getValue(); }

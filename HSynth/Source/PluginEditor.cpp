@@ -31,6 +31,8 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
                         juce::NotificationType::sendNotificationAsync);
     this->formula.setTextToShowWhenEmpty("sin(p)",
                                          juce::Colours::grey);
+    this->formula.setLookAndFeel(&lf);
+    this->formula.setColour(juce::TextEditor::backgroundColourId, juce::Colours::cyan.darker(0.95f).withAlpha(0.9f));
 
     this->formula.onReturnKey = this->formula.onFocusLost = [=] {
         std::string formula(this->formula.getText().toStdString());
@@ -49,7 +51,7 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
     this->formula.onEscapeKey = [=] { this->grabKeyboardFocus(); };
 
     this->limiterLabel.setText("Limiter", juce::NotificationType::sendNotificationAsync);
-    this->limiterLabel.setColour(juce::Label::backgroundColourId, juce::Colours::black.withAlpha(0.2f));
+    this->limiterLabel.setColour(juce::Label::backgroundColourId, juce::Colours::black.withAlpha(0.4f));
 
     this->addAndMakeVisible(this->title);
     this->addAndMakeVisible(this->formula);
@@ -144,6 +146,8 @@ void HSynthAudioProcessorEditor::paint(juce::Graphics& g) {
     }
     // Ignore the fact that it might get slow in debug mode
     g.strokePath(graph, juce::PathStrokeType(2));
+    g.setColour(juce::Colours::black.withAlpha(0.4f));
+    g.fillRect(this->title.getBounds().getUnion(this->formula.getBounds()).expanded(10));
 }
 
 void HSynthAudioProcessorEditor::resized() {

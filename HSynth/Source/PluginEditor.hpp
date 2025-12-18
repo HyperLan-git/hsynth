@@ -105,6 +105,8 @@ class HSynthAudioProcessorEditor : public juce::AudioProcessorEditor {
         hzShiftKnob;
     PListener aListener, bListener;
 
+    Looknfeel lf;
+
     juce::TextEditor formula;
     juce::Label title, error;
 

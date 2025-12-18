@@ -14,4 +14,5 @@ class Looknfeel : public juce::LookAndFeel_V4 {
     void drawTextEditorOutline(juce::Graphics&, int width, int height, juce::TextEditor&) override;
 
    private:
+    float cornerSize = 10;
 };
