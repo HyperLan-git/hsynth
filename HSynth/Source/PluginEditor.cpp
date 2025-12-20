@@ -53,6 +53,17 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
     this->limiterLabel.setText("Limiter", juce::NotificationType::sendNotificationAsync);
     this->limiterLabel.setColour(juce::Label::backgroundColourId, juce::Colours::black.withAlpha(0.4f));
 
+    this->aKnob.setSliderColor(juce::Slider::thumbColourId, juce::Colours::red.darker());
+    this->bKnob.setSliderColor(juce::Slider::thumbColourId, juce::Colours::blue.darker());
+
+    this->attackKnob.setSliderColor(juce::Slider::thumbColourId, juce::Colours::orangered.darker());
+    this->decayKnob.setSliderColor(juce::Slider::thumbColourId, juce::Colours::orangered.withRotatedHue(0.25f).darker());
+    this->sustainKnob.setSliderColor(juce::Slider::thumbColourId, juce::Colours::orangered.withRotatedHue(0.5f).darker());
+    this->releaseKnob.setSliderColor(juce::Slider::thumbColourId, juce::Colours::orangered.withRotatedHue(0.75f).darker());
+
+    this->voicesKnob.setSliderColor(juce::Slider::thumbColourId, juce::Colours::cyan.darker());
+    this->detuneKnob.setSliderColor(juce::Slider::thumbColourId, juce::Colours::mediumpurple.darker());
+
     this->addAndMakeVisible(this->title);
     this->addAndMakeVisible(this->formula);
     this->addAndMakeVisible(this->error);
@@ -102,8 +113,6 @@ void HSynthAudioProcessorEditor::setErrorText(std::string text) {
 
 int frame = 0;
 void HSynthAudioProcessorEditor::paint(juce::Graphics& g) {
-    g.fillAll(juce::Colours::black.withAlpha(0.99f));
-
     juce::Result result = shader->checkCompilation(g.getInternalContext());
     if (!result.failed()) {
         if (!timeUniform) {
@@ -119,6 +128,7 @@ void HSynthAudioProcessorEditor::paint(juce::Graphics& g) {
         timeUniform->set(std::fmod(elapsed_seconds.count(), 100.0f));
         shader->fillRect(g.getInternalContext(), getLocalBounds());
     }
+    g.fillAll(juce::Colours::black.withAlpha(0.2f));
 
     g.setColour(juce::Colours::cyan.darker(0.90f).withAlpha(0.7f));
     constexpr float startX = 50, endX = 650;

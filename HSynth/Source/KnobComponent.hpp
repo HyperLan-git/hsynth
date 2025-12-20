@@ -35,6 +35,10 @@ class KnobComponent : public juce::Component {
 
     void resized() override;
 
+    void setSliderColor(int colorID, juce::Colour color) {
+        knob.setColour(colorID, color);
+    }
+
     double getValue() const;
 
    private:

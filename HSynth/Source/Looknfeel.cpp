@@ -50,9 +50,10 @@ void Looknfeel::drawRotarySlider(juce::Graphics& g, int x, int y, int width,
     }
     knob.closeSubPath();
 
-    g.setColour(slider.findColour(juce::Slider::thumbColourId));
+    const juce::Colour col = slider.findColour(juce::Slider::thumbColourId);
+    g.setColour(col);
     g.fillPath(knob);
-    g.setColour(slider.findColour(juce::Slider::thumbColourId).darker());
+    g.setColour(col.darker());
     g.strokePath(knob, juce::PathStrokeType(1.5f));
 
     float thumbWidth = lineW / 2;
@@ -63,8 +64,7 @@ void Looknfeel::drawRotarySlider(juce::Graphics& g, int x, int y, int width,
         bounds.getCentreY() +
             arcRadius * std::sin(toAngle - juce::MathConstants<float>::halfPi));
 
-    g.setColour(
-        slider.findColour(juce::Slider::thumbColourId).darker().contrasting());
+    g.setColour(col.darker().contrasting());
     g.fillEllipse(thumbPoint.x - thumbWidth / 2, thumbPoint.y - thumbWidth / 2,
                   thumbWidth, thumbWidth);
 }
@@ -82,9 +82,6 @@ void Looknfeel::fillTextEditorBackground(juce::Graphics& g, int width, int heigh
 
         g.setColour(editor.findColour(juce::TextEditor::outlineColourId));
         g.strokePath(path, juce::PathStrokeType(1.0f));
-        //g.fillRect(0, 0, width, height);
-
-        //g.drawHorizontalLine(height - 1, 0.0f, static_cast<float> (width));
     }
     else
     {
