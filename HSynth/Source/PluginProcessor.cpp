@@ -334,7 +334,7 @@ void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 constexpr char SHADERCODE[] =
     "#version 430\n"
     "layout(local_size_x = 1, local_size_y = 1, local_size_z = "
-    "1024) in;\n"
+    "512) in;\n"
     "layout(std430, binding = 1) buffer layoutName"
     "{"
     "float data[];"
@@ -353,14 +353,14 @@ constexpr char SHADERCODE[] =
     "float a = gl_GlobalInvocationID.y / 255.0f;"
     "float b = gl_GlobalInvocationID.x / 255.0f;"
     "float t = gl_GlobalInvocationID.z / "
-    "float(gl_NumWorkGroups.z * 1024);"
+    "float(gl_NumWorkGroups.z * 512);"
     "float P = 3.14159265359f;"
     "float T = 2 * P;"
     "float p = t * T;"
     "float e = 2.71828182846f;"
     "data[gl_GlobalInvocationID.z + gl_GlobalInvocationID.y * "
-    "gl_NumWorkGroups.z * 1024 + gl_GlobalInvocationID.x * "
-    "gl_NumWorkGroups.y * gl_NumWorkGroups.z * 1024] = float(";
+    "gl_NumWorkGroups.z * 512 + gl_GlobalInvocationID.x * "
+    "gl_NumWorkGroups.y * gl_NumWorkGroups.z * 512] = float(";
 
 void HSynthAudioProcessor::resetShader() {
     if (formula.empty()) {
@@ -452,7 +452,7 @@ void HSynthAudioProcessor::computeBuffer(const std::string& formulaStr) {
     GLBuffer &buf = shader->getBuffer(0);
     try {
         bool passes = buf.getSize() < 256 * 256 * 2048 * sizeof(float);
-        shader->run(passes ? 128 : 256, 256, 2);
+        shader->run(passes ? 128 : 256, 256, 4);
         juce::Logger::writeToLog("Mapping buffer");
         ptr = buf.mapToPtr(buf.getSize());
         OPENGL_ERROR_HANDLE("Error when mapping compute buffer !");

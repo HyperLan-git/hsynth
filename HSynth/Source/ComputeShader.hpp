@@ -17,6 +17,8 @@ struct Uniform {
     int location;
 };
 
+void getShaderMaxWorkGroupSizes(int &x, int &y, int &z);
+
 class ComputeShader {
    public:
     explicit ComputeShader(const char* code,

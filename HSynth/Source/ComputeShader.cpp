@@ -89,3 +89,11 @@ void ComputeShader::run(uint16_t x, uint16_t y, uint16_t z) {
     glUseProgram(0);
     OPENGL_ERROR_HANDLE("Error when running shader !");
 }
+
+
+void getShaderMaxWorkGroupSizes(int& x, int& y, int& z) {
+    using namespace juce::gl;
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &x);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &y);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &z);
+}
