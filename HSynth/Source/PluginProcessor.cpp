@@ -29,7 +29,7 @@ HSynthAudioProcessor::HSynthAudioProcessor()
                                           "phase", 0, 1, 0)),
       phaseRandomness(
           new juce::AudioParameterFloat(juce::ParameterID("phaseRandomness", 1),
-                                        "phaseRandomness", 0, 100, 100)),
+                                        "phase randomness", 0, 100, 100)),
       limiter(new juce::AudioParameterBool(juce::ParameterID("limiter", 1),
                                            "limiter", true)) {
     addParameter(a);

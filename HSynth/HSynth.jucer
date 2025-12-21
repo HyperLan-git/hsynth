@@ -7,6 +7,8 @@
   <MAINGROUP id="jwmmb6" name="HSynth">
     <GROUP id="{E3A2B96F-A418-A4CC-9E5C-FAE86E92B676}" name="Resources">
       <FILE id="KGeo8q" name="bg.frag" compile="0" resource="1" file="Resource/bg.frag"/>
+      <FILE id="AKfJEa" name="Velvelyne-Regular.ttf" compile="0" resource="1"
+            file="Resource/Velvelyne-Regular.ttf"/>
     </GROUP>
     <GROUP id="{11D113A9-A249-0F97-C249-F795077D1B65}" name="Source">
       <FILE id="aFH3uR" name="OpenGLException.hpp" compile="0" resource="0"

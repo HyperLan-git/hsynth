@@ -7712,6 +7712,9 @@
     <None Include="..\..\Resource\bg.frag">
       <Filter>HSynth\Resources</Filter>
     </None>
+    <None Include="..\..\Resource\Velvelyne-Regular.ttf">
+      <Filter>HSynth\Resources</Filter>
+    </None>
     <None Include="..\..\..\..\..\..\..\Documents\JUCE\modules\juce_audio_devices\native\oboe\src\common\README.md">
       <Filter>JUCE Modules\juce_audio_devices\native\oboe\src\common</Filter>
     </None>

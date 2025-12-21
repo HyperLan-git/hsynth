@@ -46,9 +46,11 @@ KnobComponent::KnobComponent(juce::RangedAudioParameter* param, double step)
       label(param->getName(128), param->getName(128)) {
     addAndMakeVisible(knob);
     addAndMakeVisible(label);
+    label.setText(label.getText().substring(0, 1).toUpperCase() + label.getText().substring(1), juce::sendNotificationAsync);
 
     label.attachToComponent(&knob, false);
     label.setJustificationType(juce::Justification::centred);
+    label.setLookAndFeel(&lf);
 
     knob.setLookAndFeel(&lf);
     knob.setColour(juce::Slider::thumbColourId, juce::Colours::grey.brighter());
@@ -62,7 +64,10 @@ KnobComponent::KnobComponent(juce::RangedAudioParameter* param, double step)
     setSize(100, 100);
 }
 
-KnobComponent::~KnobComponent() { knob.setLookAndFeel(nullptr); }
+KnobComponent::~KnobComponent() { 
+    label.setLookAndFeel(nullptr);
+    knob.setLookAndFeel(nullptr);
+}
 
 void KnobComponent::paint(juce::Graphics& g) {
     g.fillAll(juce::Colours::black.withAlpha(0.4f));

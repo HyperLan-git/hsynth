@@ -23,7 +23,6 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
       limiterListener(p.getLimiterParam(), &this->limiterEnabled) {
     setSize(900, 700);
     this->error.setColour(juce::Label::textColourId, juce::Colours::red);
-    this->formula.setFont(juce::FontOptions(20.0f));
     this->formula.setTitle("Formula");
     this->formula.setClicksOutsideDismissVirtualKeyboard(true);
     this->formula.setMultiLine(true);

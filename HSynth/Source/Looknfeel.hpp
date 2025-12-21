@@ -12,7 +12,9 @@ class Looknfeel : public juce::LookAndFeel_V4 {
 
     void fillTextEditorBackground(juce::Graphics&, int width, int height, juce::TextEditor&) override;
     void drawTextEditorOutline(juce::Graphics&, int width, int height, juce::TextEditor&) override;
+    juce::Font getLabelFont(juce::Label& label) override;
 
    private:
     float cornerSize = 10;
+    juce::Font ft;
 };

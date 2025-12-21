@@ -1,6 +1,24 @@
 #include "Looknfeel.hpp"
 
-Looknfeel::Looknfeel() {}
+
+const juce::Font& getFont()
+{
+    juce::FontOptions opt(juce::Typeface::createSystemTypefaceFor(BinaryData::VelvelyneRegular_ttf,
+        BinaryData::VelvelyneRegular_ttfSize));
+    opt.withHeight(20.f);
+    static juce::Font ft(opt);
+    return ft;
+}
+
+Looknfeel::Looknfeel() {
+    ft = getFont();
+    this->setDefaultSansSerifTypeface(this->ft.getTypefacePtr());
+    this->setDefaultSansSerifTypefaceName(this->ft.getTypefaceName());
+}
+
+juce::Font Looknfeel::getLabelFont(juce::Label& label) {
+    return ft;
+}
 
 constexpr int SIDES = 10;
 
