@@ -99,6 +99,7 @@ class HSynthAudioProcessor : public juce::AudioProcessor {
 
     std::string formula;
     std::unique_ptr<ComputeShader> shader;
+    int execsZ = 2;
 
     std::string errorStr;
 

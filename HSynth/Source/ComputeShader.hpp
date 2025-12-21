@@ -1,8 +1,9 @@
 #pragma once
 
-#include "GLBuffer.hpp"
-#include <vector>
 #include <initializer_list>
+#include <vector>
+
+#include "GLBuffer.hpp"
 
 struct Uniform {
     enum Type { INT, FLOAT, I64, UINT, DOUBLE, U64 } type;
@@ -17,7 +18,8 @@ struct Uniform {
     int location;
 };
 
-void getShaderMaxWorkGroupSizes(int &x, int &y, int &z);
+int getShaderMaxWorkGroups();
+void getShaderMaxWorkGroupSizes(int& x, int& y, int& z);
 
 class ComputeShader {
    public:

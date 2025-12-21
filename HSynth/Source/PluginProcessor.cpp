@@ -46,7 +46,7 @@ HSynthAudioProcessor::HSynthAudioProcessor()
     addParameter(phaseRandomness);
     addParameter(limiter);
 
-    std::memset(data, 0, 256*256*sizeof(WTFrame));
+    std::memset(data, 0, 256 * 256 * sizeof(WTFrame));
 
     this->context = std::make_unique<juce::OpenGLContext>();
     this->context->setOpenGLVersionRequired(
@@ -143,8 +143,8 @@ double getFreq(int midiPitch) {
 constexpr float interpolExp(int samplesSinceStart, int sampleDuration,
                             float start, float end, bool negCurve = true) {
     if (samplesSinceStart > sampleDuration) return end;
-    constexpr float denNeg = -0.6321205588285577f; // 1/E - 1
-    constexpr float denPos = 1.718281828459045f; // E - 1
+    constexpr float denNeg = -0.6321205588285577f;  // 1/E - 1
+    constexpr float denPos = 1.718281828459045f;    // E - 1
     if (!negCurve)
         return start +
                (end - start) *
@@ -331,36 +331,45 @@ void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 }
 
 // XXX Emit directly gpu assembly instructions
-constexpr char SHADERCODE[] =
-    "#version 430\n"
-    "layout(local_size_x = 1, local_size_y = 1, local_size_z = "
-    "512) in;\n"
-    "layout(std430, binding = 1) buffer layoutName"
-    "{"
-    "float data[];"
-    "};\n"
-    "float arctan(float x) {return atan(x, 1);}\n"
-    // Thx Photosounder
-    "float erf(float x) {"
-    "   float y, x2 = x*x;"
-    "   y = sqrt(1.0f - exp(-x2)/(sqrt(x2+3.1220878f)-0.766943f));"
-    "   return x < 0.0 ? -y : y;"
-    "}\n"
+std::string buildShader(int workGroupsZ, std::string& formula) {
+    std::ostringstream str;
+    str << "#version 430\n"
+           "layout(local_size_x = 1, local_size_y = 1, local_size_z = "
+        << workGroupsZ
+        << ") in;\n"
+           "layout(std430, binding = 1) buffer layoutName"
+           "{"
+           "float data[];"
+           "};\n"
+           "float arctan(float x) {return atan(x, 1);}\n"
+           // Thx Photosounder
+           "float erf(float x) {"
+           "   float y, x2 = x*x;"
+           "   y = sqrt(1.0f - exp(-x2)/(sqrt(x2+3.1220878f)-0.766943f));"
+           "   return x < 0.0 ? -y : y;"
+           "}\n"
 
-    "float mod(float a, float b) { return a - b * floor(a / b); }"
+           "float mod(float a, float b) { return a - b * floor(a / b); }\n"
 
-    "void main() {"
-    "float a = gl_GlobalInvocationID.y / 255.0f;"
-    "float b = gl_GlobalInvocationID.x / 255.0f;"
-    "float t = gl_GlobalInvocationID.z / "
-    "float(gl_NumWorkGroups.z * 512);"
-    "float P = 3.14159265359f;"
-    "float T = 2 * P;"
-    "float p = t * T;"
-    "float e = 2.71828182846f;"
-    "data[gl_GlobalInvocationID.z + gl_GlobalInvocationID.y * "
-    "gl_NumWorkGroups.z * 512 + gl_GlobalInvocationID.x * "
-    "gl_NumWorkGroups.y * gl_NumWorkGroups.z * 512] = float(";
+           "void main() {"
+           "float a = gl_GlobalInvocationID.y / 255.0f;"
+           "float b = gl_GlobalInvocationID.x / 255.0f;"
+           "float t = gl_GlobalInvocationID.z / "
+           "float(gl_NumWorkGroups.z * "
+        << workGroupsZ
+        << ");"
+           "float P = 3.14159265359f;"
+           "float T = 2 * P;"
+           "float p = t * T;"
+           "float e = 2.71828182846f;"
+           "data[gl_GlobalInvocationID.z + gl_GlobalInvocationID.y * "
+           "gl_NumWorkGroups.z * "
+        << workGroupsZ
+        << " + gl_GlobalInvocationID.x * "
+           "gl_NumWorkGroups.y * gl_NumWorkGroups.z * "
+        << workGroupsZ << "] = float(" << formula << ");}";
+    return str.str();
+}
 
 void HSynthAudioProcessor::resetShader() {
     if (formula.empty()) {
@@ -368,49 +377,43 @@ void HSynthAudioProcessor::resetShader() {
         return;
     }
 
-    // This is horrendous but it must be fast
-    std::size_t sz = sizeof(SHADERCODE) + 3 + this->formula.size();
-    char* code = new char[sz];
-#pragma warning(disable : 6386)
-    std::memcpy(code, SHADERCODE, sizeof(SHADERCODE));
-    std::memcpy(code + sizeof(SHADERCODE) - 1, this->formula.c_str(),
-        this->formula.size());
-    std::memcpy(code + sz - 4, ");}", 4);
+    const int maxWG = getShaderMaxWorkGroups();
+    int workGroups = 2048;
+    this->execsZ = 1;
+    while (workGroups > maxWG) {
+        workGroups /= 2;
+        execsZ *= 2;
+    }
+
+    std::string code = buildShader(workGroups, this->formula);
     std::cout << code << "\n";
     try {
         this->shader = std::make_unique<ComputeShader>(
-            code, std::initializer_list<GLsizeiptr>{256 * 256 * 2048 *
-            sizeof(float)});
-    }
-    catch (const OpenGLException& e) {
+            code.c_str(), std::initializer_list<GLsizeiptr>{256 * 256 * 2048 *
+                                                            sizeof(float)});
+    } catch (const OpenGLException& e) {
         if (e.getErrorCode() == juce::gl::GL_OUT_OF_MEMORY) try {
-            this->shader = std::make_unique<ComputeShader>(
-                code, std::initializer_list<GLsizeiptr>{
-                128 * 256 * 2048 * sizeof(float)});
-        }
-        catch (const std::runtime_error& e) {
-            this->shader.reset();
-            delete[] code;
-            std::cerr << e.what() << std::endl;
-            errorStr = e.what();
-            return;
-        }
+                this->shader = std::make_unique<ComputeShader>(
+                    code.c_str(), std::initializer_list<GLsizeiptr>{
+                                      128 * 256 * 2048 * sizeof(float)});
+            } catch (const std::runtime_error& e) {
+                this->shader.reset();
+                std::cerr << e.what() << std::endl;
+                errorStr = e.what();
+                return;
+            }
         else {
             this->shader.reset();
-            delete[] code;
             std::cerr << e.what() << std::endl;
             errorStr = e.what();
             return;
         }
-    }
-    catch (const std::runtime_error& e) {
+    } catch (const std::runtime_error& e) {
         this->shader.reset();
-        delete[] code;
         std::cerr << e.what() << std::endl;
         errorStr = e.what();
         return;
     }
-    delete[] code;
 }
 
 void HSynthAudioProcessor::computeBuffer(const std::string& formulaStr) {
@@ -449,10 +452,10 @@ void HSynthAudioProcessor::computeBuffer(const std::string& formulaStr) {
     if (!shader) return;
 
     void* ptr = NULL;
-    GLBuffer &buf = shader->getBuffer(0);
+    GLBuffer& buf = shader->getBuffer(0);
     try {
         bool passes = buf.getSize() < 256 * 256 * 2048 * sizeof(float);
-        shader->run(passes ? 128 : 256, 256, 4);
+        shader->run(passes ? 128 : 256, 256, execsZ);
         juce::Logger::writeToLog("Mapping buffer");
         ptr = buf.mapToPtr(buf.getSize());
         OPENGL_ERROR_HANDLE("Error when mapping compute buffer !");
@@ -500,13 +503,12 @@ void HSynthAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {
     stream.write(this->formula.c_str(), this->formula.length() + 1);
 }
 
-bool formulaValid(const std::string& str)
-{
+bool formulaValid(const std::string& str) {
     return find_if(str.begin(), str.end(),
-        [](char c) { return !std::isprint(c); }) == str.end();
+                   [](char c) { return !std::isprint(c); }) == str.end();
 }
 
-//TODO add checksum
+// TODO add checksum
 void HSynthAudioProcessor::setStateInformation(const void* state,
                                                int sizeInBytes) {
     juce::MemoryInputStream stream(state, static_cast<size_t>(sizeInBytes),
@@ -517,8 +519,7 @@ void HSynthAudioProcessor::setStateInformation(const void* state,
     stream.read(str, len);
     str[len - 1] = 0;
     std::string formula(str);
-    if(formulaValid(formula))
-        this->computeBuffer(formula);
+    if (formulaValid(formula)) this->computeBuffer(formula);
     delete[] str;
 }
 
