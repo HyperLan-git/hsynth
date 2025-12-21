@@ -1,24 +1,19 @@
 #include "Looknfeel.hpp"
 
-
-const juce::Font& getFont()
-{
-    juce::FontOptions opt(juce::Typeface::createSystemTypefaceFor(BinaryData::VelvelyneRegular_ttf,
+const juce::Font getFont() {
+    juce::FontOptions opt(juce::Typeface::createSystemTypefaceFor(
+        BinaryData::VelvelyneRegular_ttf,
         BinaryData::VelvelyneRegular_ttfSize));
-    opt.withHeight(20.f);
-    static juce::Font ft(opt);
+    juce::Font ft(opt.withHeight(15.f));
     return ft;
 }
 
-Looknfeel::Looknfeel() {
-    ft = getFont();
+Looknfeel::Looknfeel() : ft(getFont()) {
     this->setDefaultSansSerifTypeface(this->ft.getTypefacePtr());
     this->setDefaultSansSerifTypefaceName(this->ft.getTypefaceName());
 }
 
-juce::Font Looknfeel::getLabelFont(juce::Label& label) {
-    return ft;
-}
+juce::Font Looknfeel::getLabelFont(juce::Label& label) { return ft; }
 
 constexpr int SIDES = 10;
 
@@ -87,41 +82,36 @@ void Looknfeel::drawRotarySlider(juce::Graphics& g, int x, int y, int width,
                   thumbWidth, thumbWidth);
 }
 
-void Looknfeel::fillTextEditorBackground(juce::Graphics& g, int width, int height, juce::TextEditor& editor) {
+void Looknfeel::fillTextEditorBackground(juce::Graphics& g, int width,
+                                         int height, juce::TextEditor& editor) {
     juce::Path path;
-    path.addRoundedRectangle(0, 0,
-        width, height,
-        cornerSize, cornerSize);
-    if (dynamic_cast<juce::AlertWindow*> (editor.getParentComponent()) != nullptr)
-    {
+    path.addRoundedRectangle(0, 0, width, height, cornerSize, cornerSize);
+    if (dynamic_cast<juce::AlertWindow*>(editor.getParentComponent()) !=
+        nullptr) {
         g.setColour(editor.findColour(juce::TextEditor::backgroundColourId));
 
         g.fillPath(path);
 
         g.setColour(editor.findColour(juce::TextEditor::outlineColourId));
         g.strokePath(path, juce::PathStrokeType(1.0f));
-    }
-    else
-    {
+    } else {
         g.setColour(editor.findColour(juce::TextEditor::backgroundColourId));
         g.fillPath(path);
     }
 }
-void Looknfeel::drawTextEditorOutline(juce::Graphics& g, int width, int height, juce::TextEditor& editor) {
-    if (dynamic_cast<juce::AlertWindow*> (editor.getParentComponent()) != nullptr
-            || !editor.isEnabled())
+void Looknfeel::drawTextEditorOutline(juce::Graphics& g, int width, int height,
+                                      juce::TextEditor& editor) {
+    if (dynamic_cast<juce::AlertWindow*>(editor.getParentComponent()) !=
+            nullptr ||
+        !editor.isEnabled())
         return;
     juce::Path path;
-    path.addRoundedRectangle(0, 0,
-        width, height,
-        cornerSize, cornerSize);
-    if (editor.hasKeyboardFocus(true) && !editor.isReadOnly())
-    {
-        g.setColour(editor.findColour(juce::TextEditor::focusedOutlineColourId));
+    path.addRoundedRectangle(0, 0, width, height, cornerSize, cornerSize);
+    if (editor.hasKeyboardFocus(true) && !editor.isReadOnly()) {
+        g.setColour(
+            editor.findColour(juce::TextEditor::focusedOutlineColourId));
         g.strokePath(path, juce::PathStrokeType(2));
-    }
-    else
-    {
+    } else {
         g.setColour(editor.findColour(juce::TextEditor::outlineColourId));
         g.strokePath(path, juce::PathStrokeType(1));
     }
