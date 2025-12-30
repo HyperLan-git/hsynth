@@ -14,13 +14,13 @@ HSynthAudioProcessor::HSynthAudioProcessor()
       a(new juce::AudioParameterFloat(juce::ParameterID("a", 1), "a", 0, 1, 0)),
       b(new juce::AudioParameterFloat(juce::ParameterID("b", 1), "b", 0, 1, 0)),
       attack(new juce::AudioParameterFloat(juce::ParameterID("attack", 1),
-                                           "attack", 0, 2, .01f)),
+                                           "attack", 0, 2000, 1)),
       decay(new juce::AudioParameterFloat(juce::ParameterID("decay", 1),
-                                          "decay", 0, 2, .5f)),
+                                          "decay", 0, 2000, 50)),
       sustain(new juce::AudioParameterFloat(juce::ParameterID("sustain", 1),
                                             "sustain", 0, 1, .75f)),
       release(new juce::AudioParameterFloat(juce::ParameterID("release", 1),
-                                            "release", 0, 2, .1f)),
+                                            "release", 0, 2000, 10)),
       voicesPerNote(new juce::AudioParameterInt(juce::ParameterID("voices", 1),
                                                 "voices", 1, 16, 1)),
       detune(new juce::AudioParameterFloat(juce::ParameterID("detune", 1),
@@ -260,9 +260,9 @@ void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     prevDetune = detune;
     double sampleRate = this->getSampleRate();
     if (sampleRate == 0) sampleRate = prevValidSampleRate;
-    const int sampleAttack = (*attack) * sampleRate;
-    const int sampleDecay = (*decay) * sampleRate;
-    const int sampleRel = (*release) * sampleRate;
+    const int sampleAttack = (*attack) / 1000 * sampleRate;
+    const int sampleDecay = (*decay) / 1000 * sampleRate;
+    const int sampleRel = (*release) / 1000 * sampleRate;
     const float sus = *sustain;
 
     const float freqShift = *hzShift;
@@ -555,6 +555,7 @@ void HSynthAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {
     stream.writeFloat(*this->stShift);
     stream.writeFloat(*this->phase);
     stream.writeFloat(*this->phaseRandomness);
+    stream.writeFloat(*this->volume);
     stream.writeInt(*this->voicesPerNote);
     stream.writeFloat(*this->detune);
     stream.writeBool(*this->limiter);
@@ -587,6 +588,20 @@ void HSynthAudioProcessor::setStateInformation(const void* state,
         this->formula = formula;
     }
     delete[] str;
+    this->a->setValueNotifyingHost(stream.readFloat());
+    this->b->setValueNotifyingHost(stream.readFloat());
+    this->attack->setValueNotifyingHost(stream.readFloat());
+    this->decay->setValueNotifyingHost(stream.readFloat());
+    this->sustain->setValueNotifyingHost(stream.readFloat());
+    this->release->setValueNotifyingHost(stream.readFloat());
+    this->hzShift->setValueNotifyingHost(stream.readFloat());
+    this->stShift->setValueNotifyingHost(stream.readFloat());
+    this->phase->setValueNotifyingHost(stream.readFloat());
+    this->phaseRandomness->setValueNotifyingHost(stream.readFloat());
+    this->volume->setValueNotifyingHost(stream.readFloat());
+    this->voicesPerNote->setValueNotifyingHost(stream.readInt());
+    this->detune->setValueNotifyingHost(stream.readFloat());
+    this->limiter->setValueNotifyingHost(stream.readBool());
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() {

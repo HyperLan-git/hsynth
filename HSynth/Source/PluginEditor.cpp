@@ -161,6 +161,8 @@ HSynthAudioProcessorEditor::~HSynthAudioProcessorEditor() {
         std::function<void()>();
     this->title.setLookAndFeel(nullptr);
     this->limiterLabel.setLookAndFeel(nullptr);
+    this->volumeLabel.setLookAndFeel(nullptr);
+    this->volumeSlider.setLookAndFeel(nullptr);
     shader.reset();
     this->audioProcessor.detachContext();
     juce::Logger::outputDebugString("detach");
