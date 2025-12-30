@@ -8,8 +8,8 @@
 
 #include "ComputeShader.hpp"
 #include "JuceHeader.h"
-#include "Parsing.hpp"
 #include "PListener.hpp"
+#include "Parsing.hpp"
 
 #define MAX_VOICES 64
 
@@ -27,6 +27,7 @@ struct Voice {
 
 using WTFrame = float[2048];
 
+inline float lerp(float x, float y, float a) { return (y - x) * a + x; }
 
 class HSynthAudioProcessor : public juce::AudioProcessor {
    public:
@@ -79,6 +80,8 @@ class HSynthAudioProcessor : public juce::AudioProcessor {
     inline juce::AudioParameterInt* getVoicesParam() { return voicesPerNote; }
     inline juce::AudioParameterFloat* getDetuneParam() { return detune; }
 
+    inline juce::AudioParameterFloat* getVolumeParam() { return volume; }
+
     inline juce::AudioParameterFloat* getPhaseParam() { return phase; }
     inline juce::AudioParameterFloat* getPhaseRandomnessParam() {
         return phaseRandomness;
@@ -87,11 +90,15 @@ class HSynthAudioProcessor : public juce::AudioProcessor {
     inline juce::AudioParameterBool* getLimiterParam() { return limiter; }
 
     inline float* getCurrentFrame() const {
-#ifdef _WIN64
         return (float*)data[(int)(b->get() * 255)][(int)(a->get() * 255)];
-#else
-        return data[(int)(b->get() * 255)][(int)(a->get() * 255)];
-#endif
+    }
+
+    inline float* getFrame(float aVal, float bVal) const {
+        return (float*)data[(int)(bVal * 255)][(int)(aVal * 255)];
+    }
+
+    inline float getFrameSample(float aVal, float bVal, int sample) const {
+        return data[(int)(bVal * 255)][(int)(aVal * 255)][sample];
     }
 
     inline juce::OpenGLContext& getContext() { return *context; }
@@ -129,6 +136,7 @@ class HSynthAudioProcessor : public juce::AudioProcessor {
 
     juce::AudioParameterInt* voicesPerNote;
     juce::AudioParameterFloat *detune, *phaseRandomness;
+    juce::AudioParameterFloat* volume;
 
     juce::AudioParameterBool* limiter;
 
@@ -136,6 +144,7 @@ class HSynthAudioProcessor : public juce::AudioProcessor {
 
     double prevValidSampleRate = 0;
     float prevPhase = 0, prevDetune = 0;
+    float prevA = 0, prevB = 0;
 
     // TODO lfo system/other envelopes maybe?
 

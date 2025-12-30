@@ -34,13 +34,16 @@ class HSynthAudioProcessorEditor : public juce::AudioProcessorEditor {
     void redrawGraph();
 
     void setFormula(std::string text) {
-        this->formula.setText(text, juce::MessageManager::existsAndIsCurrentThread() ? juce::sendNotificationAsync : juce::dontSendNotification);
+        this->formula.setText(text,
+                              juce::MessageManager::existsAndIsCurrentThread()
+                                  ? juce::sendNotificationAsync
+                                  : juce::dontSendNotification);
     }
     void setErrorText(std::string text);
 
     void setErrorTextFromAudioProcessor();
 
-private:
+   private:
     HSynthAudioProcessor& audioProcessor;
 
     juce::ToggleButton limiterEnabled;
@@ -60,6 +63,10 @@ private:
     KnobComponent aKnob, bKnob, attackKnob, decayKnob, sustainKnob, releaseKnob,
         voicesKnob, detuneKnob, phaseKnob, phaseRandKnob, stShiftKnob,
         hzShiftKnob;
+
+    juce::Label volumeLabel;
+    juce::Slider volumeSlider;
+    juce::SliderParameterAttachment volumeAttachment;
 
     Looknfeel lf;
 

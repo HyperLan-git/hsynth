@@ -1,7 +1,8 @@
 #pragma once
 
-#include "JuceHeader.h"
 #include <chrono>
+
+#include "JuceHeader.h"
 
 class Looknfeel : public juce::LookAndFeel_V4 {
    public:
@@ -16,6 +17,11 @@ class Looknfeel : public juce::LookAndFeel_V4 {
     void drawTextEditorOutline(juce::Graphics&, int width, int height,
                                juce::TextEditor&) override;
     juce::Font getLabelFont(juce::Label& label) override;
+    void drawLinearSlider(juce::Graphics& g, int x, int y, int width,
+                          int height, float sliderPos, float minSliderPos,
+                          float maxSliderPos,
+                          const juce::Slider::SliderStyle style,
+                          juce::Slider& slider) override;
 
    private:
     float cornerSizeX = 10, cornerSizeY = 20;

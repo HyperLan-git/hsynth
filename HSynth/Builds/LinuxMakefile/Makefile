@@ -116,6 +116,7 @@ OBJECTS_STANDALONE_PLUGIN := \
   $(JUCE_OBJDIR)/include_juce_audio_plugin_client_Standalone_1a871192.o \
 
 OBJECTS_SHARED_CODE := \
+  $(JUCE_OBJDIR)/Plistener_8991b885.o \
   $(JUCE_OBJDIR)/ComputeShader_d16c285d.o \
   $(JUCE_OBJDIR)/GLBuffer_bd53256e.o \
   $(JUCE_OBJDIR)/Looknfeel_d38526b6.o \
@@ -206,6 +207,11 @@ $(JUCE_OBJDIR)/include_juce_audio_plugin_client_Standalone_1a871192.o: ../../Juc
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling include_juce_audio_plugin_client_Standalone.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_STANDALONE_PLUGIN) $(JUCE_CFLAGS_STANDALONE_PLUGIN) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/Plistener_8991b885.o: ../../Source/Plistener.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling Plistener.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_SHARED_CODE) $(JUCE_CFLAGS_SHARED_CODE) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/ComputeShader_d16c285d.o: ../../Source/ComputeShader.cpp
 	-$(V_AT)mkdir -p $(@D)
