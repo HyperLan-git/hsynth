@@ -32,7 +32,8 @@ void ParamListener::sliderDragEnded(juce::Slider* s) {
 void ParamListener::parameterValueChanged(int parameterIndex, float newValue) {
     (void)parameterIndex;
     (void)newValue;
-    slider.setValue(param->convertFrom0to1(param->getValue()));
+    juce::MessageManagerLock lock;
+    //slider.setValue(param->convertFrom0to1(param->getValue()), juce::dontSendNotification);
 }
 
 void ParamListener::parameterGestureChanged(int parameterIndex,
@@ -42,8 +43,9 @@ void ParamListener::parameterGestureChanged(int parameterIndex,
 }
 
 KnobComponent::KnobComponent(juce::RangedAudioParameter* param, double step)
-    : paramListener(param, knob),
-      label(param->getName(128), param->getName(128)) {
+    : //paramListener(param, knob),
+      label(param->getName(128), param->getName(128)),
+      attachment(*param, knob) {
     addAndMakeVisible(knob);
     addAndMakeVisible(label);
     label.setText(label.getText().substring(0, 1).toUpperCase() + label.getText().substring(1), juce::sendNotificationAsync);
@@ -52,12 +54,15 @@ KnobComponent::KnobComponent(juce::RangedAudioParameter* param, double step)
     label.setJustificationType(juce::Justification::centred);
     label.setLookAndFeel(&lf);
 
+    auto range = param->getNormalisableRange();
+
     knob.setLookAndFeel(&lf);
     knob.setColour(juce::Slider::thumbColourId, juce::Colours::grey.brighter());
+    knob.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentWhite);
     knob.setSliderStyle(juce::Slider::SliderStyle::RotaryVerticalDrag);
     knob.setTextBoxStyle(juce::Slider::TextBoxAbove, false, 100, 20);
+    knob.setDoubleClickReturnValue(true, range.convertFrom0to1(param->getDefaultValue()), juce::ModifierKeys::Flags::noModifiers);
 
-    auto range = param->getNormalisableRange();
     knob.setRange(range.start, range.end, step);
     knob.setValue(param->convertFrom0to1(param->getValue()));
 

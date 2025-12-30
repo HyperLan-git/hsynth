@@ -26,7 +26,7 @@ struct HyperToken* parseSymbol(const char*& c, std::string& err) {
         const char* c2 = functions[i].c_str();
         std::size_t l = functions[i].length();
         if (std::strncmp(c, c2, l) == 0 && c[l] == '(') {
-            bool binary = i == Function::MAX || i == Function::MIN;
+            bool binary = i == Function::MAX || i == Function::MIN || i == Function::POW;
             std::size_t grp = l + 1;
             int cnt = 0;
             bool done = false;
@@ -121,6 +121,11 @@ struct HyperToken* parseSymbol(const char*& c, std::string& err) {
     op->type = tp;                                                           \
     op->a = leftOp;
 
+#ifndef _FALLTHROUGH
+# define _FALLTHROUGH
+#endif // !_FALLTHROUGH
+
+
 // Maybe one of those days I should actually use exceptions xd
 struct HyperToken* parse(std::string input, std::string& err) {
     struct HyperToken *leftOp = nullptr, *op = nullptr;
@@ -168,19 +173,15 @@ struct HyperToken* parse(std::string input, std::string& err) {
                     err = std::string("Illegal paren near: ") + std::string(c);
                     return nullptr;
                 } else {
-                    op->b =
-                        parse(input.substr(c - input.c_str() + 1, v - 1), err);
-                    if (!op->b) {
+                    op->b = new HyperToken();
+                    op->b->type = HyperToken::PARENTHESIS;
+                    op->b->a = parse(input.substr(c - input.c_str() + 1, v - 1), err);
+                    if (!op->b->a) {
                         delete op;
                         return nullptr;
                     }
                     leftOp = op;
                     op = nullptr;
-
-                    struct HyperToken* res = new HyperToken();
-                    res->type = HyperToken::PARENTHESIS;
-                    res->a = leftOp;
-                    leftOp = res;
                 }
                 c += v;
             } break;
@@ -199,7 +200,8 @@ struct HyperToken* parse(std::string input, std::string& err) {
                     c++;
                     break;
                 }
-            case '.':
+                _FALLTHROUGH;
+             case '.':
                 NEWOP(HyperToken::MUL);
                 break;
 

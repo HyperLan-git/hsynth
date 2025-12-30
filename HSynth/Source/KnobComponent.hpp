@@ -28,7 +28,7 @@ class ParamListener : public juce::Slider::Listener,
 
 class KnobComponent : public juce::Component {
    public:
-    KnobComponent(juce::RangedAudioParameter* param, double step = .001);
+    KnobComponent(juce::RangedAudioParameter* param, double step = .01);
     ~KnobComponent() override;
 
     void paint(juce::Graphics& g) override;
@@ -46,5 +46,7 @@ class KnobComponent : public juce::Component {
     juce::Label label;
     Looknfeel lf;
 
-    ParamListener paramListener;
+    juce::SliderParameterAttachment attachment;
+
+    //ParamListener paramListener;
 };

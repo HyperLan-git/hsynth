@@ -6,9 +6,7 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
     : AudioProcessorEditor(&p),
       audioProcessor(p),
       aKnob(p.getAParam()),
-      aListener(p.getAParam(), this),
       bKnob(p.getBParam()),
-      bListener(p.getBParam(), this),
       attackKnob(p.getAttackParam()),
       decayKnob(p.getDecayParam()),
       sustainKnob(p.getSustainParam()),
@@ -16,20 +14,24 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
       voicesKnob(p.getVoicesParam()),
       detuneKnob(p.getDetuneParam()),
       phaseKnob(p.getPhaseParam()),
-      phaseRandKnob(p.getPhaseRandomnessParam()),
+      phaseRandKnob(p.getPhaseRandomnessParam(), 1),
       stShiftKnob(p.getStShiftParam()),
-      hzShiftKnob(p.getHzShiftParam()),
+      hzShiftKnob(p.getHzShiftParam(), 10),
       timer(*this),
-      limiterListener(p.getLimiterParam(), &this->limiterEnabled) {
+      limiterAttachment(*p.getLimiterParam(), limiterEnabled) {
     setSize(900, 700);
     this->error.setColour(juce::Label::textColourId, juce::Colours::red);
     this->formula.setTitle("Formula");
     this->formula.setClicksOutsideDismissVirtualKeyboard(true);
     this->formula.setMultiLine(true);
+    this->formula.setColour(juce::TextEditor::outlineColourId, juce::Colours::darkgoldenrod);
+    this->formula.setColour(juce::TextEditor::focusedOutlineColourId, juce::Colours::gold);
+    this->formula.setText(p.getFormula());
     this->title.setText("Formula : ",
                         juce::NotificationType::sendNotificationAsync);
+    this->title.setLookAndFeel(&lf);
     this->formula.setTextToShowWhenEmpty("sin(p)",
-                                         juce::Colours::grey);
+                                         juce::Colours::lightgrey);
     this->formula.setLookAndFeel(&lf);
     this->formula.setColour(juce::TextEditor::backgroundColourId, juce::Colours::cyan.darker(0.95f).withAlpha(0.9f));
 
@@ -50,6 +52,7 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
     this->formula.onEscapeKey = [=] { this->grabKeyboardFocus(); };
 
     this->limiterLabel.setText("Limiter", juce::NotificationType::sendNotificationAsync);
+    this->limiterLabel.setLookAndFeel(&lf);
     this->limiterLabel.setColour(juce::Label::backgroundColourId, juce::Colours::black.withAlpha(0.4f));
 
     this->aKnob.setSliderColor(juce::Slider::thumbColourId, juce::Colours::red.darker());
@@ -62,6 +65,14 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
 
     this->voicesKnob.setSliderColor(juce::Slider::thumbColourId, juce::Colours::cyan.darker());
     this->detuneKnob.setSliderColor(juce::Slider::thumbColourId, juce::Colours::mediumpurple.darker());
+
+    this->phaseKnob.setSliderColor(juce::Slider::thumbColourId, juce::Colours::gold.darker());
+    this->phaseRandKnob.setSliderColor(juce::Slider::thumbColourId, juce::Colours::goldenrod.darker());
+
+    this->stShiftKnob.setSliderColor(juce::Slider::thumbColourId, juce::Colours::burlywood.darker(.6).withRotatedHue(.2).withMultipliedSaturation(.8));
+    this->hzShiftKnob.setSliderColor(juce::Slider::thumbColourId, juce::Colours::burlywood.darker(.6).withRotatedHue(.5).withMultipliedSaturation(.8));
+
+    this->limiterEnabled.setToggleState(p.getLimiterParam(), juce::NotificationType::dontSendNotification);
 
     this->addAndMakeVisible(this->title);
     this->addAndMakeVisible(this->formula);
@@ -95,8 +106,10 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
 
 HSynthAudioProcessorEditor::~HSynthAudioProcessorEditor() {
     this->formula.onReturnKey = this->formula.onFocusLost = std::function<void()>();
+    this->title.setLookAndFeel(nullptr);
+    this->limiterLabel.setLookAndFeel(nullptr);
     shader.reset();
-    this->audioProcessor.getContext().detach();
+    this->audioProcessor.detachContext();
     juce::Logger::outputDebugString("detach");
 }
 
@@ -112,57 +125,79 @@ void HSynthAudioProcessorEditor::setErrorText(std::string text) {
 
 int frame = 0;
 void HSynthAudioProcessorEditor::paint(juce::Graphics& g) {
+    std::chrono::time_point<std::chrono::system_clock> time =
+        std::chrono::system_clock::now();
+    std::chrono::duration<float> elapsed_seconds = time - start;
+    //auto& ctx = this->audioProcessor.getContext();
     juce::Result result = shader->checkCompilation(g.getInternalContext());
     if (!result.failed()) {
-        if (!timeUniform) {
-            timeUniform.emplace(*(shader->getProgram(g.getInternalContext())),
-                                "time");
-        }
+        timeUniform.emplace(*(shader->getProgram(g.getInternalContext())),
+            "time");
 
         g.setColour(juce::Colours::black);
-        std::chrono::time_point<std::chrono::system_clock> time =
-            std::chrono::system_clock::now();
-        std::chrono::duration<float> elapsed_seconds = time - start;
         shader->getProgram(g.getInternalContext())->use();
         timeUniform->set(std::fmod(elapsed_seconds.count(), 100.0f));
         shader->fillRect(g.getInternalContext(), getLocalBounds());
     }
-    g.fillAll(juce::Colours::black.withAlpha(0.2f));
+    g.fillAll(juce::Colours::black.withAlpha(0.5f));
 
+    constexpr float startX = 100, endX = 700, w = endX - startX;
+    constexpr float startY = 100, endY = 690, h = endY - startY;
     g.setColour(juce::Colours::cyan.darker(0.90f).withAlpha(0.7f));
-    constexpr float startX = 50, endX = 650;
-    constexpr float startY = 100, endY = 690;
-    g.fillRect(startX, startY, endX - startX, endY - startY);
+    g.fillRect(startX, startY, w, h);
+
     g.setColour(juce::Colours::yellow);
     g.setFont(juce::FontOptions(15.0f));
     if (drawGraph) {
         drawGraph = false;
         graph = juce::Path();
-        constexpr int maxI = 1200;
-        const WTFrame& frame = audioProcessor.getCurrentFrame();
+        constexpr int maxI = 2048;
+        auto frame = audioProcessor.getCurrentFrame();
 
         graph.preallocateSpace(3 * maxI);
         const float start = std::isfinite(frame[0]) ? frame[0] : 0;
-        graph.startNewSubPath(startX,
-                              (1 - start) * (endY - startY) / 2 + startY);
+        float prevY = (1 - start) * (h - 4) / 2 + startY + 2;
+        graph.startNewSubPath(startX, prevY);
+        float len = 0;
         for (int i = 1; i < maxI; i++) {
-            float x = startX + i * (endX - startX) / maxI,
-                  y = (1 - frame[i * 2048 / maxI]) * (endY - startY) / 2 +
-                      startY;
-            if (!std::isfinite(y)) y = (endY - startY) / 2 + startY;
+            len += std::abs(frame[i * 2048 / maxI] - frame[(i - 1) * 2048 / maxI]);
+            if (len > 200) break;
+        }
+        for (int i = 1; i < maxI; i++) {
+            float x = startX + i * w / maxI,
+                  y = (1 - frame[i * 2048 / maxI]) * (h-4) / 2 +
+                      startY + 2;
+            if (!std::isfinite(y)) y = (h-4) / 2 + startY + 2;
+
+            if (len > 100)
+                i += i%2;
+            if (len > 200)
+                i += 2 * (i%4);
+            prevY = y;
             graph.lineTo(x, y);
         }
     }
     // Ignore the fact that it might get slow in debug mode
     g.strokePath(graph, juce::PathStrokeType(2));
     g.setColour(juce::Colours::black.withAlpha(0.4f));
-    g.fillRect(this->title.getBounds().getUnion(this->formula.getBounds()).expanded(10));
+    g.fillRect(this->title.getBounds().getUnion(this->formula.getBounds()).expanded(10).withBottom(100));
+
+    // contour graph
+    const float t = elapsed_seconds.count();
+    juce::Colour col = juce::Colours::silver.withLightness(0.3);
+    g.setGradientFill(juce::ColourGradient(col, w*std::cos(t) + w / 2,h* std::sin(t) + h / 2,
+        col.withLightness(0.9), -std::cos(t)*w + w / 2, -std::sin(t)*h + h / 2, false));
+    g.drawRect(juce::Rectangle{ startX, startY, w, h }, 2);
+}
+
+void HSynthAudioProcessorEditor::setErrorTextFromAudioProcessor() {
+    setErrorText(audioProcessor.getError());
 }
 
 void HSynthAudioProcessorEditor::resized() {
-    this->title.setBounds({50, 0, 400, 25});
-    this->formula.setBounds({50, 25, 400, 50});
-    this->error.setBounds({50, 75, 400, 25});
+    this->title.setBounds({110, 0, 300, 25});
+    this->formula.setBounds({110, 25, 380, 50});
+    this->error.setBounds({100, 75, 400, 25});
     this->aKnob.setBounds({500, 0, 100, 100});
     this->bKnob.setBounds({600, 0, 100, 100});
     this->attackKnob.setBounds({700, 0, 100, 100});
@@ -179,31 +214,12 @@ void HSynthAudioProcessorEditor::resized() {
     this->limiterEnabled.setBounds({760, 600, 25, 25});
 }
 
-PListener::PListener(juce::RangedAudioParameter* param,
-                     HSynthAudioProcessorEditor* editor)
-    : param(param), editor(editor) {
-    this->param->addListener(this);
-}
-
-PListener::~PListener() { this->param->removeListener(this); }
-
-void PListener::parameterValueChanged(int parameterIndex, float newValue) {
-    (void)parameterIndex;
-    (void)newValue;
-    this->editor->redrawGraph();
-}
-
-void PListener::parameterGestureChanged(int parameterIndex,
-                                        bool gestureIsStarting) {
-    (void)parameterIndex;
-    (void)gestureIsStarting;
-}
-
 RepaintTimer::RepaintTimer(juce::Component& comp) : toRepaint(comp) {}
 
 RepaintTimer::~RepaintTimer() {}
 
 void RepaintTimer::timerCallback() {
-    juce::MessageManager::callAsync(
-        [=]() { this->toRepaint.repaint(this->toRepaint.getBounds()); });
+    juce::Rectangle bounds = this->toRepaint.getBounds();
+    if (bounds.getWidth() == 0 || bounds.getHeight() == 0) return;
+    this->toRepaint.repaint(bounds);
 }

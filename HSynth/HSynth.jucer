@@ -11,6 +11,8 @@
             file="Resource/Velvelyne-Regular.ttf"/>
     </GROUP>
     <GROUP id="{11D113A9-A249-0F97-C249-F795077D1B65}" name="Source">
+      <FILE id="m0buqa" name="Plistener.cpp" compile="1" resource="0" file="Source/Plistener.cpp"/>
+      <FILE id="XNFQdt" name="PListener.hpp" compile="0" resource="0" file="Source/PListener.hpp"/>
       <FILE id="aFH3uR" name="OpenGLException.hpp" compile="0" resource="0"
             file="Source/OpenGLException.hpp"/>
       <FILE id="cZMfCt" name="ComputeShader.cpp" compile="1" resource="0"

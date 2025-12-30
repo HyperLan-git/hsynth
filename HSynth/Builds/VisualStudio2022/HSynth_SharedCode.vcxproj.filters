@@ -709,6 +709,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\Source\Plistener.cpp">
+      <Filter>HSynth\Source</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Source\ComputeShader.cpp">
       <Filter>HSynth\Source</Filter>
     </ClCompile>
@@ -3657,6 +3660,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Source\PListener.hpp">
+      <Filter>HSynth\Source</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\OpenGLException.hpp">
       <Filter>HSynth\Source</Filter>
     </ClInclude>

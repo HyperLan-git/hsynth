@@ -31,7 +31,8 @@ HSynthAudioProcessor::HSynthAudioProcessor()
           new juce::AudioParameterFloat(juce::ParameterID("phaseRandomness", 1),
                                         "phase randomness", 0, 100, 100)),
       limiter(new juce::AudioParameterBool(juce::ParameterID("limiter", 1),
-                                           "limiter", true)) {
+                                           "limiter", true)),
+      editorListener(new PListener(std::initializer_list<juce::RangedAudioParameter*>{a, b}, this)) {
     addParameter(a);
     addParameter(b);
     addParameter(attack);
@@ -54,8 +55,11 @@ HSynthAudioProcessor::HSynthAudioProcessor()
 }
 
 HSynthAudioProcessor::~HSynthAudioProcessor() {
+    this->context->detach();
     this->context->deactivateCurrentContext();
     delete formulaTree;
+    delete editorListener;
+    //delete[] data;
 }
 
 const juce::String HSynthAudioProcessor::getName() const {
@@ -74,7 +78,7 @@ bool HSynthAudioProcessor::isMidiEffect() const {
 #endif
 }
 
-double HSynthAudioProcessor::getTailLengthSeconds() const { return 2.0; }
+double HSynthAudioProcessor::getTailLengthSeconds() const { return 0.0; }
 
 int HSynthAudioProcessor::getNumPrograms() { return 1; }
 
@@ -160,6 +164,7 @@ float sigmoid(float x) { return 1 / (1.f + std::exp(-x)); }
 void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                                         juce::MidiBuffer& midiMessages) {
     juce::ScopedNoDenormals noDenormals;
+    if (!data) return;
     const int outputs = getTotalNumOutputChannels();
 
     const int samples = buffer.getNumSamples();
@@ -256,12 +261,12 @@ void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
     const float freqShift = *hzShift;
 
-    if (sampleRate == 0 || freeVoices == MAX_VOICES) {
+    if (sampleRate == 0 || freeVoices == MAX_VOICES || outputs < 2) {
         buffer.clear(0, samples);
         return;
     }
 
-    auto& frame = getCurrentFrame();
+    auto frame = getCurrentFrame();
     const float freqShiftMul = std::pow(SEMITONE_PITCH, pitchShift);
     const bool doLimit = *limiter;
     {
@@ -342,6 +347,7 @@ std::string buildShader(int workGroupsZ, std::string& formula) {
            "float data[];"
            "};\n"
            "float arctan(float x) {return atan(x, 1);}\n"
+           "float sinc(float x) {if(x == 0) return 1; else return sin(x)/x;}\n"
            // Thx Photosounder
            "float erf(float x) {"
            "   float y, x2 = x*x;"
@@ -372,17 +378,20 @@ std::string buildShader(int workGroupsZ, std::string& formula) {
 }
 
 void HSynthAudioProcessor::resetShader() {
-    if (formula.empty()) {
+    if (formula.empty() || this->getActiveEditor() == nullptr || !this->context) {
         shader.reset();
         return;
     }
 
-    const int maxWG = getShaderMaxWorkGroups();
-    int workGroups = 2048;
-    this->execsZ = 1;
-    while (workGroups > maxWG) {
-        workGroups /= 2;
-        execsZ *= 2;
+    int workGroups = 2048 >> (execsZ - 1);
+    if (execsZ == 0) {
+        workGroups = 2048;
+        const int maxWG = getShaderMaxWorkGroups();
+        this->execsZ = 1;
+        while (workGroups > maxWG) {
+            workGroups /= 2;
+            execsZ *= 2;
+        }
     }
 
     std::string code = buildShader(workGroups, this->formula);
@@ -392,22 +401,10 @@ void HSynthAudioProcessor::resetShader() {
             code.c_str(), std::initializer_list<GLsizeiptr>{256 * 256 * 2048 *
                                                             sizeof(float)});
     } catch (const OpenGLException& e) {
-        if (e.getErrorCode() == juce::gl::GL_OUT_OF_MEMORY) try {
-                this->shader = std::make_unique<ComputeShader>(
-                    code.c_str(), std::initializer_list<GLsizeiptr>{
-                                      128 * 256 * 2048 * sizeof(float)});
-            } catch (const std::runtime_error& e) {
-                this->shader.reset();
-                std::cerr << e.what() << std::endl;
-                errorStr = e.what();
-                return;
-            }
-        else {
-            this->shader.reset();
-            std::cerr << e.what() << std::endl;
-            errorStr = e.what();
-            return;
-        }
+        this->shader.reset();
+        std::cerr << e.what() << std::endl;
+        errorStr = e.what();
+        return;
     } catch (const std::runtime_error& e) {
         this->shader.reset();
         std::cerr << e.what() << std::endl;
@@ -423,7 +420,7 @@ void HSynthAudioProcessor::computeBuffer(const std::string& formulaStr) {
     this->formulaTree =
         parse(formulaStr, errorStr);  // optimize(parse(formulaStr, err));
 
-    if (!errorStr.empty() || !formulaTree) {
+    if (!errorStr.empty() || !formulaTree || !this->context) {
         return;
     }
 
@@ -479,13 +476,30 @@ void HSynthAudioProcessor::computeBuffer(const std::string& formulaStr) {
             if (dat[i] > 1) dat[i] = 1;
             if (dat[i] < -1) dat[i] = -1;
         }
+        for (int i = 0; i < 256 * 256; i++) {
+            float max = 0;
+            for (int sample = 0; sample < 2048; sample++) {
+                float abs = std::abs(dat[i * 2048 + sample]);
+                if (abs > max) max = abs;
+            }
+
+            if (max < 1 && max > 0) {
+                float inv = 1 / max;
+                for (int sample = 0; sample < 2048; sample++) {
+                    dat[i * 2048 + sample] *= inv;
+                }
+            }
+        }
     }
 }
 
 bool HSynthAudioProcessor::hasEditor() const { return true; }
 
 juce::AudioProcessorEditor* HSynthAudioProcessor::createEditor() {
+    delete this->editorListener;
     auto* editor = new HSynthAudioProcessorEditor(*this);
+    // Starting to hate juce just for that... (deadlock caused by listener added while another is firing, this is absolute bollocks)
+    this->editorListener = new PListener(std::initializer_list<juce::RangedAudioParameter*>{a, b}, this);
     this->context->detach();
     this->context = std::make_unique<juce::OpenGLContext>();
     this->context->setOpenGLVersionRequired(
@@ -493,14 +507,39 @@ juce::AudioProcessorEditor* HSynthAudioProcessor::createEditor() {
     this->context->attachTo(*(editor));
     this->context->setContinuousRepainting(true);
     this->context->setSwapInterval(30);
-    this->resetShader();
+    editor->setFormula(this->formula);
+    std::string f(this->formula);
+    this->formula = "";
+    juce::MessageManager::callAsync([=] {
+        this->context->executeOnGLThread([=](juce::OpenGLContext& c) {
+                while (!c.isAttached()) std::this_thread::yield();
+                this->resetShader();
+                this->computeBuffer(f);
+                this->formula = f;
+            }, false);
+        });
     return editor;
 }
 
 void HSynthAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {
     juce::MemoryOutputStream stream(destData, true);
+    stream.writeInt(0x6767FACE); // Magic number
+    stream.writeInt(0); // Version
     stream.writeInt64(this->formula.length());
     stream.write(this->formula.c_str(), this->formula.length() + 1);
+    stream.writeFloat(*this->a);
+    stream.writeFloat(*this->b);
+    stream.writeFloat(*this->attack);
+    stream.writeFloat(*this->decay);
+    stream.writeFloat(*this->sustain);
+    stream.writeFloat(*this->release);
+    stream.writeFloat(*this->hzShift);
+    stream.writeFloat(*this->stShift);
+    stream.writeFloat(*this->phase);
+    stream.writeFloat(*this->phaseRandomness);
+    stream.writeInt(*this->voicesPerNote);
+    stream.writeFloat(*this->detune);
+    stream.writeBool(*this->limiter);
 }
 
 bool formulaValid(const std::string& str) {
@@ -513,14 +552,22 @@ void HSynthAudioProcessor::setStateInformation(const void* state,
                                                int sizeInBytes) {
     juce::MemoryInputStream stream(state, static_cast<size_t>(sizeInBytes),
                                    false);
+    int magic = stream.readInt();
+    if (magic != 0x6767FACE) return;
+    int ver = stream.readInt();
+    if (ver != 0) return;
     std::size_t len = stream.readInt64();
     if (len <= 0) return;
-    char* str = new char[len];
+    char* str = new char[len + 1];
     stream.read(str, len);
-    str[len - 1] = 0;
+    str[len] = 0;
     std::string formula(str);
-    if (formulaValid(formula)) this->computeBuffer(formula);
+    if (formulaValid(formula)) {
+        if (this->getActiveEditor() != nullptr) dynamic_cast<HSynthAudioProcessorEditor*>(this->getActiveEditor())->setFormula(formula);
+        this->formula = formula;
+    }
     delete[] str;
+
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() {

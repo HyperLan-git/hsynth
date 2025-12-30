@@ -41,6 +41,10 @@ void Looknfeel::drawRotarySlider(juce::Graphics& g, int x, int y, int width,
                                arcRadius + lineW / 4, arcRadius + lineW / 4,
                                0.0f, rotaryStartAngle, toAngle, true);
 
+        g.setColour(fill.brighter());
+        g.strokePath(valueArc,
+            juce::PathStrokeType(lineW+4, juce::PathStrokeType::curved,
+                juce::PathStrokeType::rounded));
         g.setColour(fill);
         g.strokePath(valueArc,
                      juce::PathStrokeType(lineW, juce::PathStrokeType::curved,
@@ -64,7 +68,7 @@ void Looknfeel::drawRotarySlider(juce::Graphics& g, int x, int y, int width,
     knob.closeSubPath();
 
     const juce::Colour col = slider.findColour(juce::Slider::thumbColourId);
-    g.setColour(col);
+    g.setGradientFill(juce::ColourGradient(col, width, 0.f, col.brighter(0.7f), 0.f, height, false));
     g.fillPath(knob);
     g.setColour(col.darker());
     g.strokePath(knob, juce::PathStrokeType(1.5f));
@@ -85,7 +89,7 @@ void Looknfeel::drawRotarySlider(juce::Graphics& g, int x, int y, int width,
 void Looknfeel::fillTextEditorBackground(juce::Graphics& g, int width,
                                          int height, juce::TextEditor& editor) {
     juce::Path path;
-    path.addRoundedRectangle(0, 0, width, height, cornerSize, cornerSize);
+    path.addRoundedRectangle(0, 0, width, height, cornerSizeX, cornerSizeY);
     if (dynamic_cast<juce::AlertWindow*>(editor.getParentComponent()) !=
         nullptr) {
         g.setColour(editor.findColour(juce::TextEditor::backgroundColourId));
@@ -106,13 +110,21 @@ void Looknfeel::drawTextEditorOutline(juce::Graphics& g, int width, int height,
         !editor.isEnabled())
         return;
     juce::Path path;
-    path.addRoundedRectangle(0, 0, width, height, cornerSize, cornerSize);
+    path.addRoundedRectangle(0, 0, width, height, cornerSizeX, cornerSizeY);
+
+    std::chrono::time_point<std::chrono::system_clock> time =
+        std::chrono::system_clock::now();
+    std::chrono::duration<float> elapsed_seconds = time - start;
+    float t = elapsed_seconds.count() / 2;
     if (editor.hasKeyboardFocus(true) && !editor.isReadOnly()) {
-        g.setColour(
-            editor.findColour(juce::TextEditor::focusedOutlineColourId));
-        g.strokePath(path, juce::PathStrokeType(2));
+        juce::Colour col = editor.findColour(juce::TextEditor::focusedOutlineColourId);
+        g.setGradientFill(juce::ColourGradient(col, std::cos(t) / width + width / 2, std::sin(t) / height + height / 2,
+            col.withLightness(col.getLightness()*1.5), -std::cos(t) / width + width / 2, -std::sin(t) / height + height / 2, false));
+        g.strokePath(path, juce::PathStrokeType(4));
     } else {
-        g.setColour(editor.findColour(juce::TextEditor::outlineColourId));
-        g.strokePath(path, juce::PathStrokeType(1));
+        juce::Colour col = editor.findColour(juce::TextEditor::outlineColourId);
+        g.setGradientFill(juce::ColourGradient(col, std::cos(t) / width + width / 2, std::sin(t) / height + height / 2,
+            col.withLightness(col.getLightness() * 1.2), -std::cos(t) / width + width / 2, -std::sin(t) / height + height / 2, false));
+        g.strokePath(path, juce::PathStrokeType(1.5));
     }
 }

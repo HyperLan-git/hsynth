@@ -36,7 +36,8 @@ void main()
     float s = cos(pow((uv.y-0.5)+6.0+time/3.0, 1.5))/1.5;
     float l = (0.3+0.1*(1.0+sin(uv.x*pi*4.0+t))+0.1*(1.0+sin(uv.y*pi*4.0-t)))/1.5;
     
-    vec3 col3 = hsl2rgb(vec3(h, s, l))-vec3(mod(h*r/2.0, 1.0)/4.0, atan(g*pi)/5.0, cos(time)/2.0);
+    vec3 col3 = hsl2rgb(vec3(h, s, l))-vec3(mod(h*r/2.0, 1.0)/4.0, atan(g*pi)/5.0, cos(time)/2.0)*1.2;
+    col3.r *= 1.5;
 
     float x1 = smoothstep(0.0, 0.5, time)-smoothstep(10.0, 11.0, time)
                 +smoothstep(50.0, 51.0, time)-smoothstep(60.0, 61.0, time);

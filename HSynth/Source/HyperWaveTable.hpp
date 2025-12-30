@@ -22,6 +22,7 @@
 #define MAX_PARAMS 4
 
 enum Function {
+    SINC,
     SIN,
     COS,
     TAN,
@@ -39,6 +40,7 @@ enum Function {
     ERF,
     MAX,
     MIN,
+    POW,
     GAMMA,
     ROUND,
     FLOOR,
@@ -46,9 +48,9 @@ enum Function {
 };
 
 const std::string functions[] = {
-    "sin", "cos",  "tan",  "asin",  "acos",  "arctan", "log",
+    "sinc", "sin", "cos",  "tan",  "asin",  "acos",  "arctan", "log",
     "exp", "sqrt", "cosh", "sinh",  "tanh",  "abs",    "sign",
-    "erf", "max",  "min",  "gamma", "round", "floor",  "ceil"};
+    "erf", "max",  "min", "pow",  "gamma", "round", "floor",  "ceil"};
 
 struct HyperToken {
     enum Type {

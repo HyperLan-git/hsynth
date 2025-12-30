@@ -1,6 +1,7 @@
 #pragma once
 
 #include "JuceHeader.h"
+#include <chrono>
 
 class Looknfeel : public juce::LookAndFeel_V4 {
    public:
@@ -17,6 +18,8 @@ class Looknfeel : public juce::LookAndFeel_V4 {
     juce::Font getLabelFont(juce::Label& label) override;
 
    private:
-    float cornerSize = 10;
+    float cornerSizeX = 10, cornerSizeY = 20;
     juce::Font ft;
+    std::chrono::time_point<std::chrono::system_clock> start =
+        std::chrono::system_clock::now();
 };

@@ -56,6 +56,8 @@ float computeFunction(double t, const struct HyperToken& tok, float* params,
         case MIN:
             return std::min<float>(arg1,
                                    computeSample(t, *(tok.b), params, nParams));
+        case POW:
+            return std::pow(arg1, computeSample(t, *(tok.b), params, nParams));
         case GAMMA:
             return std::tgamma(arg1);
         case ROUND:
@@ -315,6 +317,9 @@ std::ostream& operator<<(std::ostream& stream, const struct HyperToken& tok) {
         case HyperToken::LESS:
             stream << '<';
             break;
+        case HyperToken::EQUAL:
+            stream << '=';
+            break;
         case HyperToken::LESS_OR_EQUAL:
             stream << "<=";
             break;
@@ -337,6 +342,11 @@ void HyperToken::printGLSL(std::ostringstream& str) const {
     switch (this->type) {
         case HyperToken::FUNCTION:
             switch (this->func) {
+                case SINC:
+                    str << "sinc(";
+                    a->printGLSL(str);
+                    str << ")";
+                    break;
                 case SIN:
                     str << "sin(";
                     a->printGLSL(str);
@@ -413,18 +423,25 @@ void HyperToken::printGLSL(std::ostringstream& str) const {
                     str << ")";
                     break;
                 case MAX:
-                    str << "max((";
+                    str << "max(";
                     a->printGLSL(str);
-                    str << "),(";
+                    str << ",";
                     b->printGLSL(str);
-                    str << "))";
+                    str << ")";
                     break;
                 case MIN:
-                    str << "min((";
+                    str << "min(";
                     a->printGLSL(str);
-                    str << "),(";
+                    str << ",";
                     b->printGLSL(str);
-                    str << "))";
+                    str << ")";
+                    break;
+                case Function::POW:
+                    str << "pow(";
+                    a->printGLSL(str);
+                    str << ",";
+                    b->printGLSL(str);
+                    str << ")";
                     break;
                 case GAMMA:
                     str << "gamma(";
@@ -457,74 +474,73 @@ void HyperToken::printGLSL(std::ostringstream& str) const {
             str << this->number;
             break;
         case HyperToken::ADD:
-            str << "(";
             a->printGLSL(str);
-            str << ")+(";
+            str << "+";
             b->printGLSL(str);
-            str << ")";
             break;
         case HyperToken::SUB:
-            str << "(";
             a->printGLSL(str);
-            str << ")-(";
+            str << "-";
             b->printGLSL(str);
-            str << ")";
             break;
         case HyperToken::DIV:
-            str << "(";
             a->printGLSL(str);
-            str << ")/(";
+            str << "/";
             b->printGLSL(str);
-            str << ")";
             break;
         case HyperToken::MUL:
-            str << "(";
             a->printGLSL(str);
-            str << ")*(";
+            str << "*";
+            b->printGLSL(str);
+            break;
+        case HyperToken::POW:
+            str << "pow(";
+            a->printGLSL(str);
+            str << ",";
             b->printGLSL(str);
             str << ")";
             break;
-        case HyperToken::POW:
-            str << "pow((";
-            a->printGLSL(str);
-            str << "),(";
-            b->printGLSL(str);
-            str << "))";
-            break;
         case HyperToken::MOD:
-            str << "mod((";
+            str << "mod(";
             a->printGLSL(str);
-            str << "),(";
+            str << ",";
             b->printGLSL(str);
-            str << "))";
+            str << ")";
             break;
         case HyperToken::LESS:
-            str << "((";
+            str << "(";
             a->printGLSL(str);
-            str << ")<(";
+            str << "<";
             b->printGLSL(str);
-            str << "))";
+            str << ")";
+            break;
+        case HyperToken::EQUAL:
+            str << "float(";
+            a->printGLSL(str);
+            str << "==";
+            b->printGLSL(str);
+            str << ")";
             break;
         case HyperToken::LESS_OR_EQUAL:
-            str << "((";
+            str << "float(";
             a->printGLSL(str);
-            str << ")<=(";
+            str << "<=";
             b->printGLSL(str);
-            str << "))";
+            str << ")";
             break;
         case HyperToken::GREATER:
-            str << "((";
+            str << "float(";
             a->printGLSL(str);
-            str << ")>(";
+            str << ">";
             b->printGLSL(str);
-            str << "))";
+            str << ")";
             break;
         case HyperToken::GREATER_OR_EQUAL:
-            str << "((";
+            str << "float(";
             a->printGLSL(str);
-            str << ")>=(";
+            str << ">=";
             b->printGLSL(str);
-            str << "))";
+            str << ")";
             break;
         case HyperToken::PARENTHESIS:
             str << "(";

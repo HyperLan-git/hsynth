@@ -9,6 +9,7 @@
 #include "ComputeShader.hpp"
 #include "JuceHeader.h"
 #include "Parsing.hpp"
+#include "PListener.hpp"
 
 #define MAX_VOICES 64
 
@@ -25,6 +26,7 @@ struct Voice {
 };
 
 using WTFrame = float[2048];
+
 
 class HSynthAudioProcessor : public juce::AudioProcessor {
    public:
@@ -84,9 +86,9 @@ class HSynthAudioProcessor : public juce::AudioProcessor {
 
     inline juce::AudioParameterBool* getLimiterParam() { return limiter; }
 
-    inline const WTFrame& getCurrentFrame() const {
+    inline float* getCurrentFrame() const {
 #ifdef _WIN64
-        return data[(int)(b->get() * 255) * 256 + (int)(a->get() * 255)];
+        return (float*)data[(int)(b->get() * 255)][(int)(a->get() * 255)];
 #else
         return data[(int)(b->get() * 255)][(int)(a->get() * 255)];
 #endif
@@ -94,12 +96,19 @@ class HSynthAudioProcessor : public juce::AudioProcessor {
 
     inline juce::OpenGLContext& getContext() { return *context; }
 
+    inline void detachContext() {
+        shader.reset();
+        context->detach();
+    }
+
+    inline const std::string& getFormula() { return formula; }
+
    private:
     void resetShader();
 
     std::string formula;
     std::unique_ptr<ComputeShader> shader;
-    int execsZ = 2;
+    int execsZ = 0;
 
     std::string errorStr;
 
@@ -107,7 +116,7 @@ class HSynthAudioProcessor : public juce::AudioProcessor {
     // XXX Dumb bug with msvc which causes it to crap itself when allocating
     // 500MB on the stack (I wonder why xd)
 #ifdef _WIN64
-    WTFrame* data = new WTFrame[256 * 256];
+    float data[256][256][2048];
 #else
     float data[256][256][2048] = {0};
 #endif
@@ -122,6 +131,8 @@ class HSynthAudioProcessor : public juce::AudioProcessor {
     juce::AudioParameterFloat *detune, *phaseRandomness;
 
     juce::AudioParameterBool* limiter;
+
+    PListener* editorListener;
 
     double prevValidSampleRate = 0;
     float prevPhase = 0, prevDetune = 0;

@@ -8,51 +8,7 @@
 #include "Parsing.hpp"
 #include "PluginProcessor.hpp"
 
-class HSynthAudioProcessorEditor;
-
-class PListener : public juce::AudioProcessorParameter::Listener {
-   public:
-    PListener(juce::RangedAudioParameter* param,
-              HSynthAudioProcessorEditor* editor);
-
-    ~PListener() override;
-
-    void parameterValueChanged(int parameterIndex, float newValue) override;
-
-    void parameterGestureChanged(int parameterIndex,
-                                 bool gestureIsStarting) override;
-
-   private:
-    juce::RangedAudioParameter* param;
-    HSynthAudioProcessorEditor* editor;
-};
-
-class BoolParamListener : public juce::Button::Listener, public juce::AudioProcessorParameter::Listener {
-   public:
-       BoolParamListener(juce::AudioParameterBool* param, juce::ToggleButton* button) : param(param), button(button) {
-           param->addListener(this);
-           button->addListener(this);
-       }
-
-       void buttonClicked(juce::Button* b) override {
-           param->setValueNotifyingHost(b->getToggleState() ? 1.f : 0.f);
-       }
-
-       void parameterValueChanged(int parameterIndex, float newValue) override {
-           button->setToggleState(newValue > 0.f, juce::NotificationType::sendNotificationAsync);
-       }
-
-       void parameterGestureChanged(int parameterIndex,
-           bool gestureIsStarting) override {}
-
-       ~BoolParamListener() {
-           param->removeListener(this);
-           button->removeListener(this);
-       }
-   private:
-    juce::AudioParameterBool* param;
-    juce::ToggleButton* button;
-};
+class HSynthAudioProcessor;
 
 class RepaintTimer : public juce::Timer {
    public:
@@ -77,18 +33,19 @@ class HSynthAudioProcessorEditor : public juce::AudioProcessorEditor {
     void resized() override;
     void redrawGraph();
 
+    void setFormula(std::string text) {
+        this->formula.setText(text, juce::MessageManager::existsAndIsCurrentThread() ? juce::sendNotificationAsync : juce::dontSendNotification);
+    }
     void setErrorText(std::string text);
 
-    void setErrorTextFromAudioProcessor() {
-        setErrorText(audioProcessor.getError());
-    }
+    void setErrorTextFromAudioProcessor();
 
-   private:
+private:
     HSynthAudioProcessor& audioProcessor;
 
     juce::ToggleButton limiterEnabled;
     juce::Label limiterLabel;
-    BoolParamListener limiterListener;
+    juce::ButtonParameterAttachment limiterAttachment;
 
     std::unique_ptr<juce::OpenGLGraphicsContextCustomShader> shader;
     std::optional<juce::OpenGLShaderProgram::Uniform> timeUniform;
@@ -103,7 +60,6 @@ class HSynthAudioProcessorEditor : public juce::AudioProcessorEditor {
     KnobComponent aKnob, bKnob, attackKnob, decayKnob, sustainKnob, releaseKnob,
         voicesKnob, detuneKnob, phaseKnob, phaseRandKnob, stShiftKnob,
         hzShiftKnob;
-    PListener aListener, bListener;
 
     Looknfeel lf;
 
