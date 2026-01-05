@@ -179,7 +179,6 @@ void HSynthAudioProcessorEditor::setErrorText(std::string text) {
     this->error.setText(text, juce::NotificationType::sendNotificationAsync);
 }
 
-int frame = 0;
 void HSynthAudioProcessorEditor::paint(juce::Graphics& g) {
     std::chrono::time_point<std::chrono::system_clock> time =
         std::chrono::system_clock::now();
@@ -216,7 +215,7 @@ void HSynthAudioProcessorEditor::paint(juce::Graphics& g) {
         graph.preallocateSpace(3 * maxI);
         const float start = std::isfinite(frame[0]) ? frame[0] : 0;
         float prevY = (1 - start) * (h - 4) / 2 + startY + 2;
-        graph.startNewSubPath(startX, prevY);
+        graph.startNewSubPath(startX + 2, prevY);
         float len = 0;
         for (int i = 1; i < maxI; i++) {
             len +=
@@ -224,7 +223,7 @@ void HSynthAudioProcessorEditor::paint(juce::Graphics& g) {
             if (len > 200) break;
         }
         for (int i = 1; i < maxI; i++) {
-            float x = startX + i * w / maxI,
+            float x = startX + 2 + i * (w - 4) / maxI,
                   y = (1 - frame[i * 2048 / maxI]) * (h - 4) / 2 + startY + 2;
             if (!std::isfinite(y)) y = (h - 4) / 2 + startY + 2;
 

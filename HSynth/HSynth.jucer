@@ -3,7 +3,9 @@
 <JUCERPROJECT id="LXKMMQ" name="HSynth" projectType="audioplug" useAppConfig="0"
               addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" pluginCharacteristicsValue="pluginIsSynth,pluginWantsMidiIn"
               pluginVST3Category="Fx" userNotes="A synth that computes wavetables from mathematical formulas using the GPU"
-              pluginFormats="buildAU,buildStandalone,buildVST3" version="1.0.0">
+              pluginFormats="buildAU,buildLV2,buildStandalone,buildVST3" version="1.0.0"
+              companyWebsite="https://github.com/HyperLan-git" companyEmail="hyperlanf@gmail.com"
+              lv2Uri="https://github.com/HyperLan-git/hsynth" pluginManufacturer="HyperLan">
   <MAINGROUP id="jwmmb6" name="HSynth">
     <GROUP id="{E3A2B96F-A418-A4CC-9E5C-FAE86E92B676}" name="Resources">
       <FILE id="KGeo8q" name="bg.frag" compile="0" resource="1" file="Resource/bg.frag"/>

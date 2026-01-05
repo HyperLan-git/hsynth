@@ -9,10 +9,10 @@ HSynthAudioProcessor::HSynthAudioProcessor()
               .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       hzShift(new juce::AudioParameterFloat(
           {"hz_shift", 1}, "Frequency shift",
-          juce::NormalisableRange<float>(-10000, 10000, 1), 0)),
+          juce::NormalisableRange<float>(-300, 300, 1), 0)),
       stShift(new juce::AudioParameterFloat(
           {"st_shift", 1}, "Pitch shift",
-          juce::NormalisableRange<float>(-48, 48, .01f), 0)),
+          juce::NormalisableRange<float>(-24, 24, .01f), 0)),
       a(new juce::AudioParameterFloat(
           juce::ParameterID("a", 1), "a",
           juce::NormalisableRange<float>(0, 1, 0.005f), 0)),
@@ -222,23 +222,24 @@ void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                                                   : 1.f * i / voicesPerNote;
                 for (Voice& v : voices) {
                     if (v.velocity) continue;
-                    v.note = msg.getNoteNumber();
+                    v.note = (uint8_t)msg.getNoteNumber();
                     v.velocity = msg.getVelocity();
                     v.timeStart = e.samplePosition;
                     v.detune = voicesPerNote == 1 ? 0 : detuneVal;
                     v.pan = voicesPerNote == 1 ? 0 : panVal;
                     v.voiceDetune = detune;
-                    v.voice = i;
-                    v.voices = voicesPerNote;
+                    v.voice = (uint8_t)i;
+                    v.voices = (uint8_t)voicesPerNote;
                     v.freq =
                         (getFreq(v.note)) * (1. + v.detune * SEMITONE_PITCH);
-                    v.amp = 1. / voicesPerNote;
+                    v.amp = 1.f / voicesPerNote;
                     v.phase = std::fmod(
                         phase + (phaseRandomness > 0
                                      ? phaseRandomness * randFloat(randomDev)
                                      : 0),
                         1);
                     v.startingPhase = v.phase;
+                    // This value indicates not released yet
                     v.timeRelease = INT64_MIN;
                     freeVoices--;
                     break;
@@ -345,7 +346,7 @@ void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                 }
                 v.phase += dt;
                 if (v.phase > 1) v.phase -= 1;
-                if (v.phase < 0) v.phase += 1;
+                else if (v.phase < 0) v.phase += 1;
             }
             v.timeStart -= (int64_t)samples;
             if (v.timeRelease != INT64_MIN) v.timeRelease -= (int64_t)samples;
@@ -379,6 +380,33 @@ std::string buildShader(int workGroupsZ, std::string& formula) {
            "   y = sqrt(1.0f - exp(-x2)/(sqrt(x2+3.1220878f)-0.766943f));"
            "   return x < 0.0 ? -y : y;"
            "}\n"
+           // https://en.wikipedia.org/wiki/Lanczos_approximation
+           "float gamma(float z) {"
+           "   float P = 3.14159265359f;"
+           "   const float[] p = float[](0.99999999999980993,676.5203681218851,-1259.1392167224028,"
+           "     771.32342877765313,-176.61502916214059,12.507343278686905,-0.13857109526572012,"
+           "     9.9843695780195716e-6,1.5056327351493116e-7);"
+           "   if(z < 0.5) {"
+        // return pi/(sin(P*z)*gamma(1.0-z));
+           "     z = 1.0 - z;"
+           "     z -= 1.0;"
+           "     float x = p[0];"
+           "     for(int i = 1; i < 9; i++) {"
+           "        x += p[i] / (z+i);"
+           "     }"
+           "     float t = z + 7.5;"
+           "     float r = sqrt(2 * P) * pow(t, z + 0.5) * exp(-t) * x;"
+           "     return P / (sin(P*(2.0-z))*r);"
+           "   } else {"
+           "     z -= 1.0;"
+           "     float x = p[0];"
+           "     for(int i = 1; i < 9; i++) {"
+           "        x += p[i] / (z+i);"
+           "     }"
+           "     float t = z + 7.5;"
+           "     return sqrt(2 * P) * pow(t, z + 0.5) * exp(-t) * x;"
+           "   }"
+           "}"
 
            "float mod(float a, float b) { return a - b * floor(a / b); }\n"
 
@@ -609,7 +637,7 @@ void HSynthAudioProcessor::setStateInformation(const void* state,
     this->phase->setValueNotifyingHost(stream.readFloat());
     this->phaseRandomness->setValueNotifyingHost(stream.readFloat());
     this->volume->setValueNotifyingHost(stream.readFloat());
-    this->voicesPerNote->setValueNotifyingHost(stream.readInt());
+    SET_PARAM_NORMALIZED(this->voicesPerNote, stream.readInt());
     this->detune->setValueNotifyingHost(stream.readFloat());
     this->limiter->setValueNotifyingHost(stream.readBool());
 }

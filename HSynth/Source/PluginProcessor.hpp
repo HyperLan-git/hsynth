@@ -21,7 +21,7 @@ struct Voice {
     float detune = 0, amp = 0, pan = 0;
     double freq = 0;
     // Between 0 and 1
-    float startingPhase = 0;
+    double startingPhase = 0;
     double phase = 0;
 };
 

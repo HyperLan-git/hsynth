@@ -59,7 +59,7 @@ class HSynthAudioProcessorEditor : public juce::AudioProcessorEditor {
 
     bool drawGraph = true;
     juce::Path graph;
-
+    
     KnobComponent aKnob, bKnob, attackKnob, decayKnob, sustainKnob, releaseKnob,
         voicesKnob, detuneKnob, phaseKnob, phaseRandKnob, stShiftKnob,
         hzShiftKnob;

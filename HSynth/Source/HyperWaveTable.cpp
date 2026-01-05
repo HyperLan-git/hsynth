@@ -66,6 +66,8 @@ float computeFunction(double t, const struct HyperToken& tok, float* params,
             return std::ceil(arg1);
         case FLOOR:
             return std::floor(arg1);
+        case MOD:
+            return std::fmod(arg1, computeSample(t, *(tok.b), params, nParams));
         default:
             return 0;
     }
@@ -184,12 +186,14 @@ float lerpArr(float* arr, int idx, float delta) {
     return arr[idx] * delta + arr[idx + 1] * (1 - delta);
 }
 
+// Old code before switching to gpu wavetable generation
 // TODO this is sample interpolation, we need spectral interpolation too
 // (another content table that contains fft data and would get deconstructed in
 // real time)
 bool HyperWaveTable::fillBlockConst(float* block, int sz, float* parameters,
                                     float& phase, float frequency,
                                     float sampleRate) const {
+    (void)sz;
     if (spectral) return false;
     for (int i = 0; i < this->params; i++) {
         float d = parameters[i] * WAVETABLE_PARAM_SAMPLES;
@@ -373,7 +377,7 @@ void HyperToken::printGLSL(std::ostringstream& str) const {
                     str << ")";
                     break;
                 case ATAN:
-                    str << "atan(";
+                    str << "arctan(";
                     a->printGLSL(str);
                     str << ")";
                     break;
@@ -461,6 +465,13 @@ void HyperToken::printGLSL(std::ostringstream& str) const {
                 case FLOOR:
                     str << "floor(";
                     a->printGLSL(str);
+                    str << ")";
+                    break;
+                case Function::MOD:
+                    str << "mod(";
+                    a->printGLSL(str);
+                    str << ",";
+                    b->printGLSL(str);
                     str << ")";
                     break;
                 default:

@@ -26,7 +26,7 @@ struct HyperToken* parseSymbol(const char*& c, std::string& err) {
         const char* c2 = functions[i].c_str();
         std::size_t l = functions[i].length();
         if (std::strncmp(c, c2, l) == 0 && c[l] == '(') {
-            bool binary = i == Function::MAX || i == Function::MIN || i == Function::POW;
+            bool binary = i == Function::MAX || i == Function::MIN || i == Function::POW || i == Function::MOD;
             std::size_t grp = l + 1;
             int cnt = 0;
             bool done = false;
@@ -52,7 +52,7 @@ struct HyperToken* parseSymbol(const char*& c, std::string& err) {
             }
             if (binary) {
                 bool found = false;
-                int cnt = 0;
+                cnt = 0;
                 std::size_t comma = 0;
                 for (; comma < content.length(); comma++) {
                     if (content[comma] == ',' && cnt == 0) {

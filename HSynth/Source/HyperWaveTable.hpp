@@ -44,13 +44,15 @@ enum Function {
     GAMMA,
     ROUND,
     FLOOR,
-    CEIL
+    CEIL,
+    MOD
 };
 
 const std::string functions[] = {
     "sinc", "sin", "cos",  "tan",  "asin",  "acos",  "arctan", "log",
     "exp", "sqrt", "cosh", "sinh",  "tanh",  "abs",    "sign",
-    "erf", "max",  "min", "pow",  "gamma", "round", "floor",  "ceil"};
+    "erf", "max",  "min", "pow",  "gamma", "round", "floor",  "ceil",
+    "mod"};
 
 struct HyperToken {
     enum Type {
@@ -77,7 +79,7 @@ struct HyperToken {
     struct HyperToken* b = nullptr;
     union {
         float number;
-        char var;
+        char var = 0;
         enum Function func;
     };
 
