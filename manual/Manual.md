@@ -1,6 +1,6 @@
 # HSynth
 A synthesizer that can parse a mathematical expression to turn it into a wavetable. Unlike other wavetable synthesizers, you get two modulation parameters to get an additional dimension to vary and play around sound. Using the GPU, it computes 500 MB of audio data in less than a second.
-![Screenshot of the entire plugin, with a basic sawtooth wave](./screenshot.png)
+![Screenshot of the entire plugin, with a basic sawtooth wave](./screenshot.PNG)
 However it is difficult to create formulas for and is not intended for people unfamiliar with trigonometry and calculus. If you are willing to learn and to experiment with these abstract concepts, you can quickly generate sounds that would be difficult to make through other plugins.
 Let's first look at the main interface.
 
