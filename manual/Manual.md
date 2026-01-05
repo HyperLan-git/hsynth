@@ -35,6 +35,7 @@ Here are the useful variables :
 - `a` Is the value of the A parameter.
 - `b` Is the value of the B parameter.
 - `e` Is euler's constant.
+
 Here are the operations that you can use :
 - ADD a+b
 - SUB a-b
