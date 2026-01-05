@@ -19,14 +19,15 @@ static const unsigned char temp_binary_data_0[] =
 "// Code\n"
 "uniform mat4 padding;\n"
 "uniform float time;\n"
+"uniform vec2 sz;\n"
 "\n"
 "vec3 hsl2rgb(vec3 hsl);\n"
 "\n"
 "void main()\n"
 "{\n"
 "    float pi = 3.141596;\n"
-"    float t = pi*time/4.0;\n"
-"    vec2 uv = vec2(pixelPos.x/900.0, pixelPos.y/700);\n"
+"    float t = pi*time/8.0;\n"
+"    vec2 uv = vec2(pixelPos.x/sz.x, pixelPos.y/sz.y);\n"
 "    float r = 0.8*(cos(5.0*(time+uv.x*uv.y))/2.0+0.5)\n"
 "        + 0.3*(sin(4.0*(t-((uv.y+1.0)/(1.01+cos(t/5.0))-uv.y/3.0-0.5)-uv.y*0.3))/2.0+0.5),\n"
 "        g = (cos(5.0*\n"
@@ -49,7 +50,8 @@ static const unsigned char temp_binary_data_0[] =
 "    float s = cos(pow((uv.y-0.5)+6.0+time/3.0, 1.5))/1.5;\n"
 "    float l = (0.3+0.1*(1.0+sin(uv.x*pi*4.0+t))+0.1*(1.0+sin(uv.y*pi*4.0-t)))/1.5;\n"
 "    \n"
-"    vec3 col3 = hsl2rgb(vec3(h, s, l))-vec3(mod(h*r/2.0, 1.0)/4.0, atan(g*pi)/5.0, cos(time)/2.0);\n"
+"    vec3 col3 = hsl2rgb(vec3(h, s, l))-vec3(mod(h*r/2.0, 1.0)/4.0, atan(g*pi)/5.0, cos(time)/2.0)*1.2;\n"
+"    col3.r *= 1.5;\n"
 "\n"
 "    float x1 = smoothstep(0.0, 0.5, time)-smoothstep(10.0, 11.0, time)\n"
 "                +smoothstep(50.0, 51.0, time)-smoothstep(60.0, 61.0, time);\n"
@@ -2590,7 +2592,7 @@ const char* getNamedResource (const char* resourceNameUTF8, int& numBytes)
 
     switch (hash)
     {
-        case 0xf550a5ac:  numBytes = 3284; return bg_frag;
+        case 0xf550a5ac:  numBytes = 3324; return bg_frag;
         case 0x6f8a8bb3:  numBytes = 222136; return VelvelyneRegular_ttf;
         default: break;
     }

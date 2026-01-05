@@ -51,7 +51,7 @@ class HSynthAudioProcessorEditor : public juce::AudioProcessorEditor {
     juce::ButtonParameterAttachment limiterAttachment;
 
     std::unique_ptr<juce::OpenGLGraphicsContextCustomShader> shader;
-    std::optional<juce::OpenGLShaderProgram::Uniform> timeUniform;
+    std::optional<juce::OpenGLShaderProgram::Uniform> timeUniform, sizeUniform;
 
     std::chrono::time_point<std::chrono::system_clock> start =
         std::chrono::system_clock::now();

@@ -9,7 +9,7 @@
 namespace BinaryData
 {
     extern const char*   bg_frag;
-    const int            bg_fragSize = 3284;
+    const int            bg_fragSize = 3324;
 
     extern const char*   VelvelyneRegular_ttf;
     const int            VelvelyneRegular_ttfSize = 222136;

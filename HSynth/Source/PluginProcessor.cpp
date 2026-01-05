@@ -7,31 +7,43 @@ HSynthAudioProcessor::HSynthAudioProcessor()
           BusesProperties()
               .withInput("Input", juce::AudioChannelSet::stereo(), true)
               .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
-      hzShift(new juce::AudioParameterFloat({"hz_shift", 1}, "Frequency shift",
-                                            -10000, 10000, 0)),
-      stShift(new juce::AudioParameterFloat({"st_shift", 1}, "Pitch shift", -48,
-                                            48, 0)),
-      a(new juce::AudioParameterFloat(juce::ParameterID("a", 1), "a", 0, 1, 0)),
-      b(new juce::AudioParameterFloat(juce::ParameterID("b", 1), "b", 0, 1, 0)),
-      attack(new juce::AudioParameterFloat(juce::ParameterID("attack", 1),
-                                           "attack", 0, 2000, 1)),
-      decay(new juce::AudioParameterFloat(juce::ParameterID("decay", 1),
-                                          "decay", 0, 2000, 50)),
-      sustain(new juce::AudioParameterFloat(juce::ParameterID("sustain", 1),
-                                            "sustain", 0, 1, .75f)),
-      release(new juce::AudioParameterFloat(juce::ParameterID("release", 1),
-                                            "release", 0, 2000, 10)),
+      hzShift(new juce::AudioParameterFloat(
+          {"hz_shift", 1}, "Frequency shift",
+          juce::NormalisableRange<float>(-10000, 10000, 1), 0)),
+      stShift(new juce::AudioParameterFloat(
+          {"st_shift", 1}, "Pitch shift",
+          juce::NormalisableRange<float>(-48, 48, .01f), 0)),
+      a(new juce::AudioParameterFloat(
+          juce::ParameterID("a", 1), "a",
+          juce::NormalisableRange<float>(0, 1, 0.005f), 0)),
+      b(new juce::AudioParameterFloat(
+          juce::ParameterID("b", 1), "b",
+          juce::NormalisableRange<float>(0, 1, .005f), 0)),
+      attack(new juce::AudioParameterFloat(
+          juce::ParameterID("attack", 1), "attack",
+          juce::NormalisableRange<float>(0, 2000, 1), 1)),
+      decay(new juce::AudioParameterFloat(
+          juce::ParameterID("decay", 1), "decay",
+          juce::NormalisableRange<float>(0, 2000, 1), 50)),
+      sustain(new juce::AudioParameterFloat(
+          juce::ParameterID("sustain", 1), "sustain",
+          juce::NormalisableRange<float>(0, 1, .05f), .75f)),
+      release(new juce::AudioParameterFloat(
+          juce::ParameterID("release", 1), "release",
+          juce::NormalisableRange<float>(0, 2000, 1), 10)),
       voicesPerNote(new juce::AudioParameterInt(juce::ParameterID("voices", 1),
                                                 "voices", 1, 16, 1)),
-      detune(new juce::AudioParameterFloat(juce::ParameterID("detune", 1),
-                                           "detune", 0, 2, .2f)),
+      detune(new juce::AudioParameterFloat(
+          juce::ParameterID("detune", 1), "detune",
+          juce::NormalisableRange<float>(0, 2, .01f), .2f)),
       phase(new juce::AudioParameterFloat(juce::ParameterID("phase", 1),
                                           "phase", 0, 1, 0)),
-      phaseRandomness(
-          new juce::AudioParameterFloat(juce::ParameterID("phaseRandomness", 1),
-                                        "phase randomness", 0, 100, 100)),
-      volume(new juce::AudioParameterFloat(juce::ParameterID("volume", 1),
-                                           "volume", -60, 0, -20)),
+      phaseRandomness(new juce::AudioParameterFloat(
+          juce::ParameterID("phaseRandomness", 1), "p. random",
+          juce::NormalisableRange<float>(0, 100, 1), 100)),
+      volume(new juce::AudioParameterFloat(
+          juce::ParameterID("volume", 1), "volume",
+          juce::NormalisableRange<float>(-60, 0, .1f), -20)),
       limiter(new juce::AudioParameterBool(juce::ParameterID("limiter", 1),
                                            "limiter", true)),
       editorListener(new PListener(
@@ -539,25 +551,29 @@ juce::AudioProcessorEditor* HSynthAudioProcessor::createEditor() {
     return editor;
 }
 
+#define GET_PARAM_NORMALIZED(param) (param->convertTo0to1(*param))
+#define SET_PARAM_NORMALIZED(param, value) \
+    param->setValueNotifyingHost(param->convertTo0to1(value))
+
 void HSynthAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {
     juce::MemoryOutputStream stream(destData, true);
     stream.writeInt(0x6767FACE);  // Magic number
     stream.writeInt(0);           // Version
-    stream.writeInt64(this->formula.length());
-    stream.write(this->formula.c_str(), this->formula.length() + 1);
-    stream.writeFloat(*this->a);
-    stream.writeFloat(*this->b);
-    stream.writeFloat(*this->attack);
-    stream.writeFloat(*this->decay);
-    stream.writeFloat(*this->sustain);
-    stream.writeFloat(*this->release);
-    stream.writeFloat(*this->hzShift);
-    stream.writeFloat(*this->stShift);
-    stream.writeFloat(*this->phase);
-    stream.writeFloat(*this->phaseRandomness);
-    stream.writeFloat(*this->volume);
+    stream.writeString(this->formula);
+    stream.writeFloat(GET_PARAM_NORMALIZED(this->a));
+    stream.writeFloat(GET_PARAM_NORMALIZED(this->b));
+    stream.writeFloat(GET_PARAM_NORMALIZED(this->attack));
+    stream.writeFloat(GET_PARAM_NORMALIZED(this->decay));
+    stream.writeFloat(GET_PARAM_NORMALIZED(this->sustain));
+    stream.writeFloat(GET_PARAM_NORMALIZED(this->release));
+    stream.writeFloat(GET_PARAM_NORMALIZED(this->volume));
+    stream.writeFloat(GET_PARAM_NORMALIZED(this->hzShift));
+    stream.writeFloat(GET_PARAM_NORMALIZED(this->stShift));
+    stream.writeFloat(GET_PARAM_NORMALIZED(this->phase));
+    stream.writeFloat(GET_PARAM_NORMALIZED(this->phaseRandomness));
+    stream.writeFloat(GET_PARAM_NORMALIZED(this->volume));
     stream.writeInt(*this->voicesPerNote);
-    stream.writeFloat(*this->detune);
+    stream.writeFloat(GET_PARAM_NORMALIZED(this->detune));
     stream.writeBool(*this->limiter);
 }
 
@@ -566,7 +582,6 @@ bool formulaValid(const std::string& str) {
                    [](char c) { return !std::isprint(c); }) == str.end();
 }
 
-// TODO add checksum
 void HSynthAudioProcessor::setStateInformation(const void* state,
                                                int sizeInBytes) {
     juce::MemoryInputStream stream(state, static_cast<size_t>(sizeInBytes),
@@ -575,25 +590,20 @@ void HSynthAudioProcessor::setStateInformation(const void* state,
     if (magic != 0x6767FACE) return;
     int ver = stream.readInt();
     if (ver != 0) return;
-    std::size_t len = stream.readInt64();
-    if (len <= 0) return;
-    char* str = new char[len + 1];
-    stream.read(str, len);
-    str[len] = 0;
-    std::string formula(str);
+    std::string formula(stream.readString().toStdString());
     if (formulaValid(formula)) {
         if (this->getActiveEditor() != nullptr)
             dynamic_cast<HSynthAudioProcessorEditor*>(this->getActiveEditor())
                 ->setFormula(formula);
         this->formula = formula;
     }
-    delete[] str;
     this->a->setValueNotifyingHost(stream.readFloat());
     this->b->setValueNotifyingHost(stream.readFloat());
     this->attack->setValueNotifyingHost(stream.readFloat());
     this->decay->setValueNotifyingHost(stream.readFloat());
     this->sustain->setValueNotifyingHost(stream.readFloat());
     this->release->setValueNotifyingHost(stream.readFloat());
+    this->volume->setValueNotifyingHost(stream.readFloat());
     this->hzShift->setValueNotifyingHost(stream.readFloat());
     this->stShift->setValueNotifyingHost(stream.readFloat());
     this->phase->setValueNotifyingHost(stream.readFloat());

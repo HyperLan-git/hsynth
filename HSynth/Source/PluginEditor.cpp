@@ -7,10 +7,10 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
       audioProcessor(p),
       aKnob(p.getAParam()),
       bKnob(p.getBParam()),
-      attackKnob(p.getAttackParam()),
-      decayKnob(p.getDecayParam()),
+      attackKnob(p.getAttackParam(), 1),
+      decayKnob(p.getDecayParam(), 1),
       sustainKnob(p.getSustainParam()),
-      releaseKnob(p.getReleaseParam()),
+      releaseKnob(p.getReleaseParam(), 1),
       voicesKnob(p.getVoicesParam()),
       detuneKnob(p.getDetuneParam()),
       phaseKnob(p.getPhaseParam()),
@@ -20,7 +20,8 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
       timer(*this),
       limiterAttachment(*p.getLimiterParam(), limiterEnabled),
       volumeAttachment(*p.getVolumeParam(), volumeSlider) {
-    setSize(900, 700);
+    setSize(950, 750);
+    this->setResizable(true, true);
     this->error.setColour(juce::Label::textColourId, juce::Colours::red);
     this->formula.setTitle("Formula");
     this->formula.setClicksOutsideDismissVirtualKeyboard(true);
@@ -54,7 +55,7 @@ HSynthAudioProcessorEditor::HSynthAudioProcessorEditor(HSynthAudioProcessor& p)
     this->setWantsKeyboardFocus(true);
     this->formula.onEscapeKey = [=] { this->grabKeyboardFocus(); };
 
-    this->limiterLabel.setText("Limiter",
+    this->limiterLabel.setText("Norm.",
                                juce::NotificationType::sendNotificationAsync);
     this->limiterLabel.setLookAndFeel(&lf);
     this->limiterLabel.setColour(juce::Label::backgroundColourId,
@@ -188,10 +189,13 @@ void HSynthAudioProcessorEditor::paint(juce::Graphics& g) {
     if (!result.failed()) {
         timeUniform.emplace(*(shader->getProgram(g.getInternalContext())),
                             "time");
+        sizeUniform.emplace(*(shader->getProgram(g.getInternalContext())),
+                            "sz");
 
         g.setColour(juce::Colours::black);
         shader->getProgram(g.getInternalContext())->use();
         timeUniform->set(std::fmod(elapsed_seconds.count(), 100.0f));
+        sizeUniform->set(this->getWidth(), this->getHeight());
         shader->fillRect(g.getInternalContext(), getLocalBounds());
     }
     g.fillAll(juce::Colours::black.withAlpha(0.5f));
@@ -232,6 +236,8 @@ void HSynthAudioProcessorEditor::paint(juce::Graphics& g) {
     }
     // Ignore the fact that it might get slow in debug mode
     g.strokePath(graph, juce::PathStrokeType(2));
+
+    // I should have just drawn manually a big box instead of all this...
     g.setColour(juce::Colours::black.withAlpha(0.4f));
     g.fillRect(this->title.getBounds()
                    .getUnion(this->formula.getBounds())
@@ -240,6 +246,7 @@ void HSynthAudioProcessorEditor::paint(juce::Graphics& g) {
     g.fillRect(this->volumeLabel.getBounds()
                    .getUnion(this->volumeSlider.getBounds())
                    .withBottom(625));
+    g.fillRect(juce::Rectangle<float>{endX, 625.f, 200.f, 65.f});
 
     // contour graph
     const float t = elapsed_seconds.count();

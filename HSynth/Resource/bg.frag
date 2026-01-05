@@ -6,14 +6,15 @@ in float pixelAlpha;
 // Code
 uniform mat4 padding;
 uniform float time;
+uniform vec2 sz;
 
 vec3 hsl2rgb(vec3 hsl);
 
 void main()
 {
     float pi = 3.141596;
-    float t = pi*time/4.0;
-    vec2 uv = vec2(pixelPos.x/900.0, pixelPos.y/700);
+    float t = pi*time/8.0;
+    vec2 uv = vec2(pixelPos.x/sz.x, pixelPos.y/sz.y);
     float r = 0.8*(cos(5.0*(time+uv.x*uv.y))/2.0+0.5)
         + 0.3*(sin(4.0*(t-((uv.y+1.0)/(1.01+cos(t/5.0))-uv.y/3.0-0.5)-uv.y*0.3))/2.0+0.5),
         g = (cos(5.0*
