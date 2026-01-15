@@ -22,7 +22,7 @@ sine: sin(p)
 tri: abs(2-abs(1-t*4))-1
 square: sign(t-0.5)
 saw: (t+0.5)%1*2-1
-normalised sinc: ((2/(1.217234))*(sinc((p-P)*(2+a*50))+0.217234)-1)
+normalised sinc: ((2/(1.217234))*(sinc((p-P)*(5+a*50))+0.217234)-1)
 fm saw: ((t+(b*10*(abs(2-abs(1-t*4))-1))+a*5*sin(p)+0.5)%1*2-1)*sin(p)*sign(t-0.5)
 distorted sine: arctan((1+b*20)*sin(p+a*30*sin(p)))*2/P
 F pulse: arctan(5*cos(20*a*a*p)*(tan(p**(1+b))))/P

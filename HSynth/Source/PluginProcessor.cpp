@@ -86,13 +86,7 @@ bool HSynthAudioProcessor::acceptsMidi() const { return true; }
 
 bool HSynthAudioProcessor::producesMidi() const { return false; }
 
-bool HSynthAudioProcessor::isMidiEffect() const {
-#if JucePlugin_IsMidiEffect
-    return true;
-#else
-    return false;
-#endif
-}
+bool HSynthAudioProcessor::isMidiEffect() const { return false; }
 
 double HSynthAudioProcessor::getTailLengthSeconds() const { return 0.0; }
 
@@ -195,7 +189,16 @@ void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
     for (const auto& e : midiMessages) {
         const juce::MidiMessage& msg = e.getMessage();
-        if (msg.isNoteOff()) {
+        if (msg.isController()) {
+            int controller = msg.getControllerNumber();
+            if (controller % 2) {
+                this->a->setValueNotifyingHost(msg.getControllerValue() /
+                                               127.f);
+            } else {
+                this->b->setValueNotifyingHost(msg.getControllerValue() /
+                                               127.f);
+            }
+        } else if (msg.isNoteOff()) {
             for (Voice& v : voices) {
                 if (!v.velocity || v.timeRelease != INT64_MIN ||
                     v.note != msg.getNoteNumber())
@@ -345,8 +348,10 @@ void HSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                     }
                 }
                 v.phase += dt;
-                if (v.phase > 1) v.phase -= 1;
-                else if (v.phase < 0) v.phase += 1;
+                if (v.phase > 1)
+                    v.phase -= 1;
+                else if (v.phase < 0)
+                    v.phase += 1;
             }
             v.timeStart -= (int64_t)samples;
             if (v.timeRelease != INT64_MIN) v.timeRelease -= (int64_t)samples;
@@ -383,11 +388,14 @@ std::string buildShader(int workGroupsZ, std::string& formula) {
            // https://en.wikipedia.org/wiki/Lanczos_approximation
            "float gamma(float z) {"
            "   float P = 3.14159265359f;"
-           "   const float[] p = float[](0.99999999999980993,676.5203681218851,-1259.1392167224028,"
-           "     771.32342877765313,-176.61502916214059,12.507343278686905,-0.13857109526572012,"
+           "   const float[] p = "
+           "float[](0.99999999999980993,676.5203681218851,-1259.1392167224028,"
+           "     "
+           "771.32342877765313,-176.61502916214059,12.507343278686905,-0."
+           "13857109526572012,"
            "     9.9843695780195716e-6,1.5056327351493116e-7);"
            "   if(z < 0.5) {"
-        // return pi/(sin(P*z)*gamma(1.0-z));
+           // return pi/(sin(P*z)*gamma(1.0-z));
            "     z = 1.0 - z;"
            "     z -= 1.0;"
            "     float x = p[0];"

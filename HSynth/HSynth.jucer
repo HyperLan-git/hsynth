@@ -5,7 +5,8 @@
               pluginVST3Category="Fx" userNotes="A synth that computes wavetables from mathematical formulas using the GPU"
               pluginFormats="buildAU,buildLV2,buildStandalone,buildVST3" version="1.0.0"
               companyWebsite="https://github.com/HyperLan-git" companyEmail="hyperlanf@gmail.com"
-              lv2Uri="https://github.com/HyperLan-git/hsynth" pluginManufacturer="HyperLan">
+              lv2Uri="https://github.com/HyperLan-git/hsynth" pluginManufacturer="HyperLan"
+              companyName="HyperLan">
   <MAINGROUP id="jwmmb6" name="HSynth">
     <GROUP id="{E3A2B96F-A418-A4CC-9E5C-FAE86E92B676}" name="Resources">
       <FILE id="KGeo8q" name="bg.frag" compile="0" resource="1" file="Resource/bg.frag"/>
@@ -64,7 +65,7 @@
   </MODULES>
   <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_VST3_CAN_REPLACE_VST2="0"/>
   <EXPORTFORMATS>
-    <LINUX_MAKE targetFolder="Builds/LinuxMakefile">
+    <LINUX_MAKE targetFolder="Builds/LinuxMakefile" extraDefs="JUCE_USE_JACK=1&#10;JUCE_USE_ALSA=1">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" targetName="HSynth" extraLinkerFlags="-fsanitize=address"
                        extraCompilerFlags="-fsanitize=address -g -fno-omit-frame-pointer"/>
