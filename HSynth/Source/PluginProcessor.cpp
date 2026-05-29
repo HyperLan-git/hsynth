@@ -5,7 +5,6 @@
 HSynthAudioProcessor::HSynthAudioProcessor()
     : AudioProcessor(
           BusesProperties()
-              .withInput("Input", juce::AudioChannelSet::stereo(), true)
               .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       hzShift(new juce::AudioParameterFloat(
           {"hz_shift", 1}, "Frequency shift",
@@ -133,9 +132,10 @@ bool HSynthAudioProcessor::isBusesLayoutSupported(
 #if !JucePlugin_IsSynth
     if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
         return false;
+#else
+    return layouts.getMainInputChannelSet().isDisabled()
+        && !layouts.getMainOutputChannelSet().isDisabled();
 #endif
-
-    return true;
 #endif
 }
 #endif
@@ -417,6 +417,18 @@ std::string buildShader(int workGroupsZ, std::string& formula) {
            "}"
 
            "float mod(float a, float b) { return a - b * floor(a / b); }\n"
+
+           // from various examples online
+           "float gcd(float a, float b) {"
+            // While loop is not always allowed, use a for loop.
+           "for (int i = 0; i < 1000; ++i) {"
+           "    if (abs(b) < 0.01) break;"
+           "    a = mod(a, b);"
+           "    if (abs(a) < 0.01) break;"
+           "    b = mod(b, a);"
+           " }"
+           "return a + b;"
+           "}\n"
 
            "void main() {"
            "float a = gl_GlobalInvocationID.y / 255.0f;"

@@ -10,6 +10,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <numeric>
 
 // TODO cpp-ify all this
 
@@ -45,14 +46,15 @@ enum Function {
     ROUND,
     FLOOR,
     CEIL,
-    MOD
+    MOD,
+    GCD
 };
 
 const std::string functions[] = {
     "sinc", "sin", "cos",  "tan",  "asin",  "acos",  "arctan", "log",
     "exp", "sqrt", "cosh", "sinh",  "tanh",  "abs",    "sign",
     "erf", "max",  "min", "pow",  "gamma", "round", "floor",  "ceil",
-    "mod"};
+    "mod", "gcd"};
 
 struct HyperToken {
     enum Type {

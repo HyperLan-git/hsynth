@@ -68,6 +68,8 @@ float computeFunction(double t, const struct HyperToken& tok, float* params,
             return std::floor(arg1);
         case MOD:
             return std::fmod(arg1, computeSample(t, *(tok.b), params, nParams));
+        case GCD:
+            return std::gcd((int)arg1, (int)computeSample(t, *(tok.b), params, nParams));
         default:
             return 0;
     }
@@ -469,6 +471,13 @@ void HyperToken::printGLSL(std::ostringstream& str) const {
                     break;
                 case Function::MOD:
                     str << "mod(";
+                    a->printGLSL(str);
+                    str << ",";
+                    b->printGLSL(str);
+                    str << ")";
+                    break;
+                case Function::GCD:
+                    str << "gcd(";
                     a->printGLSL(str);
                     str << ",";
                     b->printGLSL(str);

@@ -30,4 +30,6 @@ F pulse 2: arctan((1+sin(t*((0.5*b+P/4)**(p*P))))**sin(p**((0.4+a*2)*p/5)))/P-0.
 P mod: sin(tan(sin(p*(1+b))+abs(sin(p*(1+b))%((a+0.2)/2+0.001))**3))
 thing: arctan(abs((abs(2-abs(1-(((t+sin(p)*a*2)%1)*4)))-1))**(arctan(sin(t)**sin(t*b*300))))/P-0.125
 6: arctan(gamma(t-8+t*(a*12+1)))/P
+gcd fun: arctan(gcd(t,gcd(t+b,t*t*a+t)))
+
 ```

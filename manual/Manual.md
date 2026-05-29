@@ -73,6 +73,7 @@ The functions you can add :
 - Floor floor(a)
 - Ceiling ceil(a)
 - Modulus mod(t, a)
+- Greatest common divisor gcd(a, b)
 - Gamma function gamma(t)
 
 If you mistype your formula, an error message will appear below the text box. Any infinite or undefined value like 1/0 or sqrt(-1) gets replaced with zero.

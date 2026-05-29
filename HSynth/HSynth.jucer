@@ -2,7 +2,7 @@
 
 <JUCERPROJECT id="LXKMMQ" name="HSynth" projectType="audioplug" useAppConfig="0"
               addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" pluginCharacteristicsValue="pluginIsSynth,pluginWantsMidiIn"
-              pluginVST3Category="Fx" userNotes="A synth that computes wavetables from mathematical formulas using the GPU"
+              pluginVST3Category="Instrument" userNotes="A synth that computes wavetables from mathematical formulas using the GPU"
               pluginFormats="buildAU,buildLV2,buildStandalone,buildVST3" version="1.0.0"
               companyWebsite="https://github.com/HyperLan-git" companyEmail="hyperlanf@gmail.com"
               lv2Uri="https://github.com/HyperLan-git/hsynth" pluginManufacturer="HyperLan"
