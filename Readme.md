@@ -1,6 +1,8 @@
 # HSynth
 A synthesizer that can parse a mathematical expression to turn it into a multidimensional wavetable. Look at [the manual](./manual/Manual.md) for more info.
 
+If you do not have a DAW setup, I'd recommend getting the standalone plugin and downloading VMPK for midi input.
+
 ## Dependencies
 On windows, you just need Visual Studio 2022 and Juce.
 In addition to juce's main dependencies on linux, you'll need libasan to compile in debug mode.
