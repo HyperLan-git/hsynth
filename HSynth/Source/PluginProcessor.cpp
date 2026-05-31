@@ -458,11 +458,13 @@ void HSynthAudioProcessor::resetShader() {
     }
 
     int workGroups = 2048 >> (execsZ - 1);
+    int _, maxWGZ;
+    getShaderMaxWorkGroupSizes(_, _, maxWGZ);
+    const int maxWG = getShaderMaxWorkGroups();
     if (execsZ == 0) {
         workGroups = 2048;
-        const int maxWG = getShaderMaxWorkGroups();
         this->execsZ = 1;
-        while (workGroups > maxWG) {
+        while (workGroups > maxWGZ || workGroups > maxWG) {
             workGroups /= 2;
             execsZ *= 2;
         }
